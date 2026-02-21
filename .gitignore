@@ -1,0 +1,9 @@
+# Python缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# PyCharm缓存文件
+.idea/
+*.iml
