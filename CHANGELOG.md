@@ -3,7 +3,7 @@
 ## 2026-02-20
 - 上传人：杨焕莹
 - 上传内容：首次上传全量代码，包含虚拟VISA通信、数据分析、硬件数据获取、主流程、页面展示、数据判定相关文件
-- 上传文件清单：virtual_visa.py、data_analysis.py、data_get.py、mainfunction.py、app.py、judge_qual.py（注：修正原笔误“judge_equal”）
+- 上传文件清单：virtual_visa.py、data_analysis.py、data_get.py、mainfunction.py、app.py、judge_qual.py
 
 ## 2026-02-21
 - 修改人：杨焕莹
@@ -11,9 +11,8 @@
 - 原文件：data_get.py
 - 新文件：hardware_comm.py
 - 修改内容：
-  1. 调整输出字典格式，严格贴合硬件协议（hardware_protocol）要求，新增test_points字段，删除冗余的s_parameters字段
-  2. 标准化device_info字典键名（model/cable_type/test_time），删除非协议要求的serial/cal_date等字段
-  3. 保留核心VISA通信逻辑，仅修改返回数据格式
+  1. 调整输出字典格式，严格贴合硬件协议（hardware_protocol）要求
+  2.  保留核心VISA通信逻辑，仅修改返回数据格式
 
 ### 2. 主流程文件修改
 - 修改文件：mainfunction.py
@@ -23,13 +22,13 @@
   3. 输出格式对齐分析协议（analysis_protocol），仅作为流程串联层，不新增业务逻辑
 
 ### 3. 数据分析文件优化
-- 修改文件：data_analysis.py（修正原笔误“data analysis.py”）
+- 修改文件：data_analysis.py（修正原“data analysis.py”）
 - 修改内容：
-  1. 删除plot_s_parameters函数（页面层改用streamlit绘图，避免冗余）
+  1. 删除plot_s_parameters函数（页面层改用streamlit绘图）
   2. 函数入参适配硬件协议字典（hardware_comm返回格式），不再依赖嵌套字典解析
   3. 整合judge_qual.py的所有点判定逻辑（S11/S21阈值判定），替代独立判定文件
-  4. 输出格式严格对齐分析协议（analysis_protocol），包含qualified/message/s11_data等必填字段
-  5. 保留核心均值计算逻辑（S11/S21均值），并封装至analysis_detail字段
+  4. 输出格式严格对齐分析协议（analysis_protocol）
+  5. 保留核心均值计算逻辑（S11/S21均值）
   6. 函数名标准化为analyze_s_params，提升可读性
 
 ### 4. 新增协议定义文件
