@@ -3,7 +3,7 @@
 from hardware_comm import get_s_params
 from data_analysis import analyze_s_params
 
-def run():
+def run(cable_type):
     try:
         # 1. 调用硬件同学的函数，获取硬件协议字典
         hardware_dict = get_s_params()
