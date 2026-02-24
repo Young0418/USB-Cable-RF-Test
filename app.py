@@ -3,7 +3,7 @@
 
 import streamlit as st
 import pandas as pd
-from mainfunction import run
+from controller import run
 
 # 页面配置
 st.set_page_config(page_title="USB线缆检测系统", layout="wide")
@@ -14,7 +14,7 @@ st.sidebar.header("操作面板")
 if st.sidebar.button("开始检测"):
     with st.spinner("正在读取数据并分析..."):
         try:
-            result = run()  # 调用主流程函数
+            result = run(cable_type)  # 调用主流程函数
         except Exception as e:
             st.error(f"检测失败：{e}")
             st.stop()
