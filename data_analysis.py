@@ -1,6 +1,6 @@
 import pandas as pd
 
-def analyze_s_params(hardware_dict):
+def analyze_s_params(hardware_dict,cable_type):
     """
     输入：硬件同学返回的hardware_protocol格式字典
     输出：analysis_protocol格式字典（整合均值分析+所有点判定）
