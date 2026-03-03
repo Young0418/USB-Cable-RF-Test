@@ -1,7 +1,7 @@
 # controller.py
 # 核心作用：串联硬件+数据分析，返回analysis_protocol格式字典
 from hardware_comm import get_s_params
-from data_analysis import analyze_s_params
+from data_analysis_amended import analyze_s_params
 
 def run(cable_type):
     try:
