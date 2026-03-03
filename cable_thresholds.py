@@ -1,4 +1,4 @@
-# cable_thresholds.py
+# cable_thresholds.py.py
 
 # 键严格对应需要支持的三种线缆：RG316、RG58、半刚电缆
 CABLE_THRESHOLDS = {

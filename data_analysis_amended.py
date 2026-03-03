@@ -6,7 +6,7 @@ def analyze_s_params(hardware_dict, cable_type):
     """
     严格遵循要求：
     - 输入：硬件协议字典 + 线缆类型（双入参）
-    - 阈值：从 cable_thresholds.py 动态获取
+    - 阈值：从 cable_thresholds.py.py 动态获取
     - 输出：完全符合 analysis_protocol 格式的字典
     """
     # 步骤1：按硬件协议提取数据
