@@ -34,10 +34,10 @@ def get_s_params():
             "点数":1001
         },
     }
-    raw_s11 = inst.quary("CALC:DATA? S11").strip().split(',')
+    raw_s11 = inst.query("CALC:DATA? S11").strip().split(',')
     #解析为dB值
     s11_dB = []
-    for i in (0,len(raw_s11),2):
+    for i in range(0,len(raw_s11),2):
         real=float(raw_s11[i])
         imag=float(raw_s11[i+1])
         mag=math.sqrt(real*real+imag*imag) #幅度
@@ -46,11 +46,11 @@ def get_s_params():
             dB=-200
         else:
             dB=20*math.log10(mag)
-            s11_dB.append(dB)
+        s11_dB.append(dB)
 
-    raw_s21 = inst.quary(f"CALC:DATA? S21").strip().split(',')
+    raw_s21 = inst.query(f"CALC:DATA? S21").strip().split(',')
     s21_dB = []
-    for i in (0,len(raw_s21),2):
+    for i in range(0,len(raw_s21),2):
         real=float(raw_s21[i])
         imag=float(raw_s21[i+1])
         mag=math.sqrt(real*real+imag*imag)
@@ -73,7 +73,7 @@ def get_s_params():
         for i in range(num_points):
             freq_list.append(start_freq+i*step)
     else:
-        freq_list=start_freq
+        freq_list=[start_freq]
     # 2. 按hardware_protocol格式组装返回字典
     return {
         "S11": s11_dB,  # 保留S11一维列表
