@@ -1,53 +1,189 @@
-# 1. 导入需要的库：socket是实现电脑内部TCP通信的库，random生成模拟S参数，time暂时没用
+# 1. 导入库
 import socket
 import random
+import math
 import time
 
-# 2. 定义生成模拟S参数的函数：gen_s_data = generate S data（生成S11/S21数据）
-# num=1001是默认测试点数，和真实矢网的测试点数一致，不用改
-def gen_s_data(num=1001):
-    # 生成S11数据：-25到-5之间的随机数（贴合真实线缆的反射系数，数值越小反射越好），保留2位小数
-    s11 = [round(random.uniform(-25, -5), 2) for _ in range(num)]
-    # 生成S21数据：-6到0之间的随机数（贴合真实线缆的传输系数，越接近0传输越好），保留2位小数
-    s11 = [round(random.uniform(-25, -5), 2) for _ in range(num)]
-    s21 = [round(random.uniform(-6, 0), 2) for _ in range(num)]
-    # 返回生成的S11/S21数据，供后续指令调用
-    return s11, s21
+# 2. 定义模拟S参数的生成函数（复数形式）
+def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9):
+    """
+    生成模拟的复数S11和S21数据。
+    返回格式：两个列表，每个元素是复数(实部, 虚部)
+    这里用一个简单的谐振模型模拟频率响应，使数据看起来更真实。
+    """
+    if num_points <= 1:  # 新增：防止除零
+        return [], []  # 返回空列表
 
-# 3. 初始化TCP通信的socket对象，相当于创建一个“仪器的通信接口”
+    s11_list = []
+    s21_list = []
+    for i in range(num_points):
+        # 模拟频率（等间隔）
+        f = freq_start + (freq_stop - freq_start) * i / (num_points - 1)
+        # S11：在某个频点有谐振凹陷
+        resonance_freq = 1.5e9  # 谐振频率
+        s11_mag = -20 - 10 * math.exp(-((f - resonance_freq)/0.5e9)**2)  # dB值，谐振处更低
+        s11_phase = 2 * math.pi * random.random()  # 随机相位
+        # 转换为复数
+        real = 10**(s11_mag/20) * math.cos(s11_phase)
+        imag = 10**(s11_mag/20) * math.sin(s11_phase)
+        s11_list.append(complex(real, imag))
+
+        # S21：随频率增加而衰减
+        s21_mag = -0.5 - 2.5 * (f / freq_stop)  # dB值，线性下降
+        s21_phase = 2 * math.pi * random.random()
+        real = 10**(s21_mag/20) * math.cos(s21_phase)
+        imag = 10**(s21_mag/20) * math.sin(s21_phase)
+        s21_list.append(complex(real, imag))
+    return s11_list, s21_list
+
+# 3. 初始化TCP服务器
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# 4. 解决端口被占用的问题：每次重启服务器不用等端口释放，新手必加，不用改
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-# 5. 绑定本地IP+固定端口5025：相当于给“虚拟仪器”分配一个固定的“通信地址”，硬件代码直接连这个地址
 s.bind(("127.0.0.1", 5025))
-# 6. 让虚拟仪器进入“等待连接状态”：相当于矢网开机后等待电脑连接
 s.listen(1)
-# 7. 打印启动提示：告诉你虚拟仪器启动成功，硬件代码该用哪个VISA地址
-print(f"虚拟矢网启动成功！固定VISA地址：TCPIP0::127.0.0.1::5025::SOCKET")
+print("虚拟矢网启动成功！固定VISA地址：TCPIP0::127.0.0.1::5025::SOCKET")
 
-# 8. 无限循环：让虚拟仪器一直处于工作状态，不会连接一次就关闭
+# 4. 仪器内部状态（模拟寄存器）
+instrument_state = {
+    "points": 1001,               # 默认点数
+    "freq_start": 1e6,            # 起始频率
+    "freq_stop": 3e9,             # 终止频率
+    "format": "REAL",             # 数据返回格式：REAL（实部+虚部）或 ASCii
+    "s11_data": None,             # 当前生成的S11复数数据
+    "s21_data": None               # 当前生成的S21复数数据
+}
+
+# 5. 辅助函数：刷新数据（当设置改变时重新生成）
+def refresh_data():
+    try:  # 新增异常捕获
+        s11, s21 = generate_complex_s_data(
+            instrument_state["points"],
+            instrument_state["freq_start"],
+            instrument_state["freq_stop"]
+        )
+        instrument_state["s11_data"] = s11
+        instrument_state["s21_data"] = s21
+    except Exception as e:
+        print(f"刷新数据失败: {e}")  # 打印错误，方便调试
+        instrument_state["s11_data"] = []  # 设置为空列表，避免后续遍历 None
+        instrument_state["s21_data"] = []
+# 初始生成一次数据
+refresh_data()
+
+# 6. 主循环
 while True:
-    # 9. 接收硬件代码的连接请求：conn是通信通道，addr是硬件代码的地址，不用改
     conn, addr = s.accept()
     print(f"硬件代码已连接：{addr}")
-    # 10. 内层循环：处理硬件代码发送的所有SCPI指令
     while True:
-        # 11. 读取硬件代码发送的指令：解码成字符串，去掉首尾空格/换行
-        data = conn.recv(1024).decode().strip()
-        # 12. 如果没收到指令（比如硬件代码关闭连接），就退出内层循环
-        if not data: break
-        # 13. 指令判断：模拟仪器响应SCPI指令，核心部分！
-        if data == "*IDN?":  # 如果收到“查询仪器型号”指令
-            # 返回模拟的思仪3674型号，和真实仪器的返回格式一致
-            conn.send(b"SiYi,3674,Virtual,1.0\r\n")
-        elif "CALC:DATA? S11" in data:  # 如果收到“读取S11数据”指令
-            s11, _ = gen_s_data()  # 调用生成S参数的函数，取S11
-            # 把S11数据转成字符串，用逗号分隔（和真实仪器的返回格式一致），发给硬件代码
-            conn.send((",".join(map(str, s11)) + "\r\n").encode())
-        elif "CALC:DATA? S21" in data:  # 如果收到“读取S21数据”指令
-            _, s21 = gen_s_data()  # 调用生成S参数的函数，取S21
-            conn.send((",".join(map(str, s21)) + "\r\n").encode())
-        else:  # 收到其他指令（比如设置频率、点数），直接返回“OK”，不用处理
-            conn.send(b"OK\r\n")
-    # 14. 硬件代码关闭连接后，关闭通信通道
+        try:
+            data = conn.recv(1024).decode().strip()
+            if not data:
+                break
+            print(f"收到指令: {data}")
+
+            # 处理命令（忽略大小写和前后空格）
+            cmd = data.upper()
+
+            # *IDN? 查询
+            if cmd == "*IDN?":
+                conn.send(b"SiYi,3674,Virtual,1.0\r\n")
+
+            # 设置点数
+            elif cmd.startswith(":SENSE:SWEEP:POINTS"):
+                # 格式 :SENSE:SWEEP:POINTS 1001
+                parts = cmd.split()
+                if len(parts) == 2:
+                    try:
+                        pts = int(parts[1])
+                        instrument_state["points"] = pts
+                        refresh_data()  # 重新生成数据
+                        conn.send(b"OK\r\n")
+                    except:
+                        conn.send(b"ERROR\r\n")
+                else:
+                    conn.send(b"ERROR\r\n")
+
+            # 查询点数
+            elif cmd == ":SENSE:SWEEP:POINTS?":
+                conn.send(f"{instrument_state['points']}\r\n".encode())
+
+            # 设置起始频率
+            elif cmd.startswith(":SENSE:FREQUENCY:START"):
+                parts = cmd.split()
+                if len(parts) == 2:
+                    try:
+                        freq = float(parts[1])
+                        instrument_state["freq_start"] = freq
+                        refresh_data()
+                        conn.send(b"OK\r\n")
+                    except:
+                        conn.send(b"ERROR\r\n")
+                else:
+                    conn.send(b"ERROR\r\n")
+
+            # 查询起始频率
+            elif cmd == ":SENSE:FREQUENCY:START?":
+                conn.send(f"{instrument_state['freq_start']}\r\n".encode())
+
+            # 设置终止频率
+            elif cmd.startswith(":SENSE:FREQUENCY:STOP"):
+                parts = cmd.split()
+                if len(parts) == 2:
+                    try:
+                        freq = float(parts[1])
+                        instrument_state["freq_stop"] = freq
+                        refresh_data()
+                        conn.send(b"OK\r\n")
+                    except:
+                        conn.send(b"ERROR\r\n")
+                else:
+                    conn.send(b"ERROR\r\n")
+
+            # 查询终止频率
+            elif cmd == ":SENSE:FREQUENCY:STOP?":
+                conn.send(f"{instrument_state['freq_stop']}\r\n".encode())
+
+            # 设置数据格式（这里我们只支持REAL，即实部+虚部）
+            elif cmd.startswith(":FORMAT"):
+                # 假设命令 :FORMAT REAL
+                parts = cmd.split()
+                if len(parts) == 2 and parts[1] == "REAL":
+                    instrument_state["format"] = "REAL"
+                    conn.send(b"OK\r\n")
+                else:
+                    conn.send(b"ERROR\r\n")
+
+            # 查询S11数据（返回复数格式）
+            elif cmd == ":CALC:DATA? S11" or cmd == "CALC:DATA? S11":
+                if instrument_state["format"] == "REAL":
+                    if instrument_state["s11_data"] is None or not isinstance(instrument_state["s11_data"], list):
+                        conn.send(b"ERROR\r\n")  # 数据无效，返回错误
+                    else:
+                        data_list = []
+                        for c in instrument_state["s11_data"]:
+                            data_list.append(f"{c.real:.6f}")
+                            data_list.append(f"{c.imag:.6f}")
+                        response = ",".join(data_list) + "\r\n"
+                        conn.send(response.encode())
+                else:
+                    conn.send(b"ERROR\r\n")
+            # 查询S21数据
+            elif cmd == ":CALC:DATA? S21" or cmd == "CALC:DATA? S21":
+                if instrument_state["format"] == "REAL":
+                    data_list = []
+                    for c in instrument_state["s21_data"]:
+                        data_list.append(f"{c.real:.6f}")
+                        data_list.append(f"{c.imag:.6f}")
+                    response = ",".join(data_list) + "\r\n"
+                    conn.send(response.encode())
+                else:
+                    conn.send(b"ERROR\r\n")
+
+            # 其他未识别的命令，简单回复OK（可扩展）
+            else:
+                conn.send(b"OK\r\n")
+        except Exception as e:
+            print(f"处理出错: {e}")
+            break
     conn.close()
+    print("连接关闭")
