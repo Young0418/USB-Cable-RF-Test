@@ -50,4 +50,4 @@
   2. 增加 AI 智能分析区域，集成 DeepSeek API：检测后可生成 AI 结论，并支持最多 3 次追问（需正确配置密钥）
 
 ### 4. 依赖与配置更新
-- 新增文件：`.streamlit/secrets.toml`，api.py
+- 新增文件：`.streamlit/secrets.toml`，`api.py`
