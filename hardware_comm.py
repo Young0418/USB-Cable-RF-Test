@@ -11,8 +11,8 @@ def get_s_params():
     inst.write_termination = '\n'
     inst.read_termination = '\n'
 
-    inst.write("FORMAT REAL")
-    inst.write(":SENSe:SWEep:POINts 1001")
+    inst.query("FORMAT REAL")
+    inst.query(":SENSe:SWEep:POINts 1001")
 
     CONFIG={
         "仪器信息": inst.query("*IDN?").strip(),
