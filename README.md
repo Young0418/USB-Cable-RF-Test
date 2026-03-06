@@ -17,12 +17,29 @@
 - 版本管理：GitHub
 
 ## 4. 主要文件说明
-- `hardware_comm.py`      硬件通信主程序（串口收发、数据读取）
-- `data_analysis.py`      数据解析与处理
-- `.gitignore`            Git 忽略缓存文件
-- `CHANGELOG.md`          项目重要更新记录
-- `README.md`             项目说明（本文件）
+.
+├── hardware/ # 硬件通信模块
+│ ├── virtual_visa.py # 虚拟仪器（无硬件时模拟）
+│ └── hardware_comm.py # 真实仪器通信
+├── analysis/ # 数据分析模块
+│ ├── cable_thresholds.py # 线缆阈值配置
+│ └── data_analysis_amended.py # 核心分析函数
+├── gui/ # 前端界面
+│ └── app.py # Streamlit应用
+├── api.py/ # API服务（FastAPI）
+├── docs/ # 文档
+├── CHANGELOG.md # 更新日志
+└── README.md
 
-## 5. 协作简单规则
-1. 每次改完代码：简单写一下改了哪一块
-2. 重要功能更新：记在 CHANGELOG.md 里
+## 5. 功能特点
+- 支持多种线缆类型（RG316、RG58、半刚电缆等），阈值可配置。
+- 硬件控制：通过SCPI指令与思仪3674通信，获取复数S参数并转换为dB。
+- 智能分析：根据线缆类型动态阈值，判断合格/不合格，计算统计量。
+- AI增强：调用DeepSeek API生成自然语言分析建议。
+- 可视化界面：基于Streamlit，实时显示曲线、结果和AI报告。
+## 6.使用说明
+1. 配置线缆阈值：编辑 `cable_thresholds.py` 添加或修改线缆参数。
+2. 启动虚拟仪器（无真实仪器时）：`python hardware/virtual_visa.py`
+3. 启动API服务：`python api.py`
+4. 启动前端：`streamlit run app.py`
+5. 在浏览器中打开 `http://localhost:8501`，选择线缆类型并开始检测。
