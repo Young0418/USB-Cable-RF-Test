@@ -49,6 +49,7 @@ instrument_state = {
     "freq_start": 1e6,            # 起始频率
     "freq_stop": 3e9,             # 终止频率
     "format": "REAL",             # 数据返回格式：REAL（实部+虚部）或 ASCii
+    "selected_parameter": "S11",
     "s11_data": None,             # 当前生成的S11复数数据
     "s21_data": None               # 当前生成的S21复数数据
 }
@@ -152,34 +153,34 @@ while True:
                     conn.send(b"OK\r\n")
                 else:
                     conn.send(b"ERROR\r\n")
-
+            # 选择测量参数
+            elif cmd.startswith(":CALC") and ":PAR:SELECT" in cmd:
+                # 格式示例 :CALC:PAR:SELect S11
+                parts = cmd.split()
+                param = parts[-1]  # 最后一个部分是参数名
+                if param in ["S11", "S21"]:
+                    instrument_state["selected_parameter"] = param
+                    conn.send(b"OK\r\n")
+                else:
+                    conn.send(b"ERROR\r\n")
             # 查询S11数据（返回复数格式）
-            elif cmd == ":CALC:DATA? S11" or cmd == "CALC:DATA? S11":
+            elif ":CALCULATE" in cmd and ":DATA? FDATA" in cmd:
                 if instrument_state["format"] == "REAL":
-                    if instrument_state["s11_data"] is None or not isinstance(instrument_state["s11_data"], list):
-                        conn.send(b"ERROR\r\n")  # 数据无效，返回错误
+                    # 根据当前选择的参数返回数据
+                    data = instrument_state["s11_data"] if instrument_state["selected_parameter"] == "S11" else \
+                    instrument_state["s21_data"]
+                    if data is None or not isinstance(data, list):
+                        conn.send(b"ERROR\r\n")
                     else:
                         data_list = []
-                        for c in instrument_state["s11_data"]:
+                        for c in data:
                             data_list.append(f"{c.real:.6f}")
                             data_list.append(f"{c.imag:.6f}")
                         response = ",".join(data_list) + "\r\n"
                         conn.send(response.encode())
                 else:
                     conn.send(b"ERROR\r\n")
-            # 查询S21数据
-            elif cmd == ":CALC:DATA? S21" or cmd == "CALC:DATA? S21":
-                if instrument_state["format"] == "REAL":
-                    data_list = []
-                    for c in instrument_state["s21_data"]:
-                        data_list.append(f"{c.real:.6f}")
-                        data_list.append(f"{c.imag:.6f}")
-                    response = ",".join(data_list) + "\r\n"
-                    conn.send(response.encode())
-                else:
-                    conn.send(b"ERROR\r\n")
 
-            # 其他未识别的命令，简单回复OK（可扩展）
             else:
                 conn.send(b"OK\r\n")
         except Exception as e:
