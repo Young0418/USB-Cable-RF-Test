@@ -5,7 +5,7 @@ import math
 import time
 
 # 2. 定义模拟S参数的生成函数（复数形式）
-def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable_quality="good"):
+def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable_quality="bad"):
     """
     生成模拟的复数S11和S21数据。支持不同种类线缆
     返回格式：两个列表，每个元素是复数(实部, 虚部)
@@ -23,22 +23,26 @@ def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable
         # 根据质量调整S11和S21的特性
         if cable_quality == "good":
             # 好线：S11 全频段都很低（<-25dB），S21 衰减很小（>-1dB）
-            s11_mag = -30 - 5 * math.sin(2 * math.pi * 0.1 * i / num_points)  # 小幅波动
-            s21_mag = -0.5 - 0.2 * (f / freq_stop)  # 略微下降
+            s11_mag = -35 + 5 * math.sin(2 * math.pi * 2.5 * i / num_points)
+            s21_mag = -0.8 + 0.3 * math.cos(2 * math.pi * 1.8 * i / num_points)  # 略微下降
         elif cable_quality == "bad":
             # 坏线：在某个频点有大的反射峰，或者整体损耗很大
             # 模拟一个谐振峰
-            resonance_freq = 1.5e9  # 故障频点
-            s11_mag = -15 - 20 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)  # 谐振处反射大
-            # 损耗也较大
-            s21_mag = -3 - 4 * (f / freq_stop)  # 整体衰减大
+            resonance_freq = 1.8e9
+            # 高斯峰，峰值 -5dB，宽度 0.2GHz
+            s11_mag = -15 - 10 * math.exp(-((f - resonance_freq) / 0.2e9) ** 2)
+            # 在其他频率，S11 也偏高（-10 ~ -15）
+            s11_mag += -10 + 2 * math.sin(2 * math.pi * 1.0 * i / num_points)
+            # S21 整体损耗大，且在谐振频率附近额外衰减
+            s21_mag = -3 - 2 * (f / freq_stop) - 3 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)
         elif cable_quality == "marginal":
             # 边缘线：接近合格阈值，可能在某些频点刚好超标
-            s11_mag = -20 - 2 * math.sin(2 * math.pi * 0.2 * i / num_points)  # 均值-20dB，有时略超
-            s21_mag = -1.5 - 1.5 * (f / freq_stop)  # 在高端可能略差
+            s11_mag = -20 + 4 * math.sin(2 * math.pi * 3.0 * i / num_points)  # 振幅4dB，有时高于-20
+            # S21 在 -1.5dB 上下波动，部分点低于 -1.5
+            s21_mag = -1.5 + 1.0 * math.cos(2 * math.pi * 2.2 * i / num_points)
         else:
             # 默认好线
-            s11_mag = -25
+            s11_mag = -35
             s21_mag = -1.0
 
         # 添加随机相位（保持一定随机性）
@@ -174,7 +178,7 @@ while True:
                 else:
                     conn.send(b"ERROR\r\n")
             # 选择测量参数
-            elif cmd.startswith(":CALC") and ":PAR:SELECT" in cmd:
+            elif cmd.startswith(":CALC") and ":PARAMETER:SELECT" in cmd:
                 # 格式示例 :CALC:PAR:SELect S11
                 parts = cmd.split()
                 param = parts[-1]  # 最后一个部分是参数名
