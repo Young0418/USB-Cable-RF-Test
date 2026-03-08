@@ -5,9 +5,9 @@ import math
 import time
 
 # 2. 定义模拟S参数的生成函数（复数形式）
-def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9):
+def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable_quality="good"):
     """
-    生成模拟的复数S11和S21数据。
+    生成模拟的复数S11和S21数据。支持不同种类线缆
     返回格式：两个列表，每个元素是复数(实部, 虚部)
     这里用一个简单的谐振模型模拟频率响应，使数据看起来更真实。
     """
@@ -19,23 +19,41 @@ def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9):
     for i in range(num_points):
         # 模拟频率（等间隔）
         f = freq_start + (freq_stop - freq_start) * i / (num_points - 1)
-        # S11：在某个频点有谐振凹陷
-        resonance_freq = 1.5e9  # 谐振频率
-        s11_mag = -20 - 10 * math.exp(-((f - resonance_freq)/0.5e9)**2)  # dB值，谐振处更低
-        s11_phase = 2 * math.pi * random.random()  # 随机相位
-        # 转换为复数
-        real = 10**(s11_mag/20) * math.cos(s11_phase)
-        imag = 10**(s11_mag/20) * math.sin(s11_phase)
-        s11_list.append(complex(real, imag))
 
-        # S21：随频率增加而衰减
-        s21_mag = -0.5 - 2.5 * (f / freq_stop)  # dB值，线性下降
+        # 根据质量调整S11和S21的特性
+        if cable_quality == "good":
+            # 好线：S11 全频段都很低（<-25dB），S21 衰减很小（>-1dB）
+            s11_mag = -30 - 5 * math.sin(2 * math.pi * 0.1 * i / num_points)  # 小幅波动
+            s21_mag = -0.5 - 0.2 * (f / freq_stop)  # 略微下降
+        elif cable_quality == "bad":
+            # 坏线：在某个频点有大的反射峰，或者整体损耗很大
+            # 模拟一个谐振峰
+            resonance_freq = 1.5e9  # 故障频点
+            s11_mag = -15 - 20 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)  # 谐振处反射大
+            # 损耗也较大
+            s21_mag = -3 - 4 * (f / freq_stop)  # 整体衰减大
+        elif cable_quality == "marginal":
+            # 边缘线：接近合格阈值，可能在某些频点刚好超标
+            s11_mag = -20 - 2 * math.sin(2 * math.pi * 0.2 * i / num_points)  # 均值-20dB，有时略超
+            s21_mag = -1.5 - 1.5 * (f / freq_stop)  # 在高端可能略差
+        else:
+            # 默认好线
+            s11_mag = -25
+            s21_mag = -1.0
+
+        # 添加随机相位（保持一定随机性）
+        s11_phase = 2 * math.pi * random.random()
         s21_phase = 2 * math.pi * random.random()
-        real = 10**(s21_mag/20) * math.cos(s21_phase)
-        imag = 10**(s21_mag/20) * math.sin(s21_phase)
-        s21_list.append(complex(real, imag))
-    return s11_list, s21_list
 
+        real_s11 = 10 ** (s11_mag / 20) * math.cos(s11_phase)
+        imag_s11 = 10 ** (s11_mag / 20) * math.sin(s11_phase)
+        s11_list.append(complex(real_s11, imag_s11))
+
+        real_s21 = 10 ** (s21_mag / 20) * math.cos(s21_phase)
+        imag_s21 = 10 ** (s21_mag / 20) * math.sin(s21_phase)
+        s21_list.append(complex(real_s21, imag_s21))
+
+    return s11_list, s21_list
 # 3. 初始化TCP服务器
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -51,7 +69,8 @@ instrument_state = {
     "format": "REAL",             # 数据返回格式：REAL（实部+虚部）或 ASCii
     "selected_parameter": "S11",
     "s11_data": None,             # 当前生成的S11复数数据
-    "s21_data": None               # 当前生成的S21复数数据
+    "s21_data": None,               # 当前生成的S21复数数据
+    "cable_quality": "good",
 }
 
 # 5. 辅助函数：刷新数据（当设置改变时重新生成）
@@ -60,7 +79,8 @@ def refresh_data():
         s11, s21 = generate_complex_s_data(
             instrument_state["points"],
             instrument_state["freq_start"],
-            instrument_state["freq_stop"]
+            instrument_state["freq_stop"],
+            instrument_state["cable_quality"]
         )
         instrument_state["s11_data"] = s11
         instrument_state["s21_data"] = s21
