@@ -1,0 +1,78 @@
+# 模拟硬件数据函数（用于测试，可替换为真实硬件接口）
+def get_cable_data():
+    """模拟从硬件获取数据，返回符合 hardware_protocol 格式的字典"""
+    return {
+        "S11": [-21.1, -22.2, -23.3],
+        "S21": [-1.1, -2.2, -3.1],
+        "device_info": {"model": "思仪3674", "test_time": "2026-02-21 10:00:00"},
+        "test_points": [1, 2, 3]  # 频率点（示例：1GHz, 2GHz, 3GHz）
+    }
+
+
+# 核心分析函数：函数名和输出字典格式严格保持不变
+def analyze_s_params(hardware_data, cable_type):
+    """
+    分析S参数，支持按不同频率点设置不同合格阈值
+    函数名、输出字典格式与原 analysis_protocol 完全一致
+    """
+    s11 = hardware_data["S11"]
+    s21 = hardware_data["S21"]
+    test_points = hardware_data["test_points"]
+
+    # 1. 定义不同频率点的阈值配置（可根据线缆类型扩展）
+    threshold_config = {
+        "RG316": {
+            1: {"S11": -20.0, "S21": -1.0},  # 频率点1的阈值
+            2: {"S11": -21.0, "S21": -1.5},  # 频率点2的阈值
+            3: {"S11": -22.0, "S21": -2.0}  # 频率点3的阈值
+        }
+        # 可继续添加其他线缆类型的阈值配置
+    }
+
+    # 获取当前线缆类型的阈值规则
+    cable_thresholds = threshold_config.get(cable_type, {})
+    # 默认阈值（未配置频率点时使用）
+    default_s11 = -25.0
+    default_s21 = -3.0
+
+    # 2. 逐点判断合格/不合格
+    s11_pass = True
+    s21_pass = True
+    for idx, freq in enumerate(test_points):
+        # 获取当前频点阈值
+        thresh = cable_thresholds.get(freq, {"S11": default_s11, "S21": default_s21})
+        # S11 合格判断：实测值 < 阈值（数值越小越好）
+        if s11[idx] >= thresh["S11"]:
+            s11_pass = False
+        # S21 合格判断：实测值 > 阈值（插入损耗越小越好，数值越大越优）
+        # 若你的工程逻辑是 S21 越小越好，可改为 s21[idx] < thresh["S21"]
+        if s21[idx] <= thresh["S21"]:
+            s21_pass = False
+
+    # 3. 保持原输出字典格式不变
+    result = {
+        "cable_type": cable_type,
+        "test_time": hardware_data["device_info"]["test_time"],
+        "S11_pass": s11_pass,
+        "S21_pass": s21_pass,
+        "overall_pass": s11_pass and s21_pass
+    }
+    return result
+
+
+# 主函数（用于测试）
+def main():
+    # 1. 获取硬件数据
+    hardware_data = get_cable_data()
+
+    # 2. 调用分析函数，传入硬件数据和线缆类型
+    result = analyze_s_params(hardware_data, "RG316")
+
+    # 3. 打印结果（格式与原代码完全一致）
+    print("===== 分析结果 =====")
+    for k, v in result.items():
+        print(f"{k}: {v}")
+
+
+if __name__ == "__main__":
+    main()
