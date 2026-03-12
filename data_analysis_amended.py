@@ -73,7 +73,8 @@ def analyze_s_params(hardware_data, cable_type):
             "s21_data": [test_points, s21],
             "analysis_detail": {
                 "s11_mean": round(s11_mean, 2),
-                "s21_mean": round(s21_mean, 2)
+                "s21_mean": round(s21_mean, 2),
+            "cable_type": cable_type,
             }
         }
     return result
