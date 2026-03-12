@@ -9,12 +9,13 @@ def run(cable_type):
         hardware_dict = get_s_params()
         # 2. 调用数据分析同学的函数，获取分析判定协议字典
         analysis_dict = analyze_s_params(hardware_dict,cable_type)
+        analysis_dict["cable_type"] = cable_type
         # 3. 直接返回（已符合页面要求的analysis_protocol格式）
         return analysis_dict
     except Exception as e:
         raise Exception(f"检测失败：{str(e)}")
 
 if __name__ == "__main__":
-    test_result = run()
+    test_result = run("RG316")
     print("整体合格状态：", test_result["qualified"])
     print("S11均值：", test_result["analysis_detail"]["s11_mean"])
