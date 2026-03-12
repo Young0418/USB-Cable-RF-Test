@@ -4,7 +4,9 @@ import requests
 import openai
 import os
 from streamlit.errors import StreamlitSecretNotFoundError
-from cable_thresholds import CABLE_THRESHOLDS
+from cable_thresholds import FREQ_THRESHOLDS
+from elabel.cable_thresholds import MEAN_THRESHOLDS
+
 
 # ---------- 安全获取 DeepSeek API 密钥 ----------
 try:
@@ -27,7 +29,7 @@ st.set_page_config(page_title="USB线缆检测系统 (AI 增强版)", layout="wi
 st.title("🔌 USB 线缆 S 参数检测 + DeepSeek 智能分析")
 st.sidebar.header("操作面板")
 
-cable_options = list(CABLE_THRESHOLDS.keys())
+cable_options = list(MEAN_THRESHOLDS.keys())
 selected_cable = st.sidebar.selectbox("选择线缆类型", cable_options)
 
 API_URL = "http://localhost:8000/analyze"
@@ -95,7 +97,7 @@ if st.session_state.detection_result:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**S11 参数**")
-        s11_th = CABLE_THRESHOLDS[selected_cable]["s11_all_threshold"]
+        s11_th = FREQ_THRESHOLDS[selected_cable]["S11"][0]
         if result['s11_qualified']:
             st.info(f"S11 合格 (所有点 < {s11_th} dB)")
         else:
@@ -110,7 +112,7 @@ if st.session_state.detection_result:
 
     with col2:
         st.markdown("**S21 参数**")
-        s21_th = CABLE_THRESHOLDS[selected_cable]["s21_all_threshold"]
+        s21_th = FREQ_THRESHOLDS[selected_cable]["S21"][0]
         if result['s21_qualified']:
             st.info(f"S21 合格 (所有点 > {s21_th} dB)")
         else:
