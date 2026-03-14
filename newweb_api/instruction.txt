@@ -1,0 +1,45 @@
+# instruction.txt —— 线缆检测系统部署与验证指南
+## 1. 环境准备
+1. Python >= 3.9
+2. pip install -r requirements.txt（至少包含 Flask, requests, pyvisa, pyvisa-py, numpy）
+3. 建议安装虚拟环境：python -m venv .venv && source .venv/bin/activate
+## 2. 必要配置
+1. DeepSeek API Key：
+   - Linux/macOS: export DEEPSEEK_API_KEY="sk-xxx"
+   - Windows PowerShell: setx DEEPSEEK_API_KEY "sk-xxx"
+2. 虚拟仪器（默认使用）：
+   - 地址：TCPIP0::127.0.0.1::5025::SOCKET
+   - 如需真实仪器，设置环境变量：
+     - setx USE_VIRTUAL_VISA "0"
+     - setx VISA_ADDRESS "TCPIP0::192.168.0.10::5025::SOCKET"
+## 3. 启动步骤
+1. 启动虚拟矢网：python "virtual visa.py"
+2. 启动Web服务：python app.py
+3. 浏览器访问 http://localhost:5000
+## 4. 功能测试
+### 4.1 前端渲染
+- 页面加载后看到顶部“线缆检测面板”、默认显示线缆选择器
+- AI状态标签初始为“AI检测中…”，约3秒内变为“AI已连接”或“AI未连接”
+### 4.2 检测流程
+1. 选择任意线缆类型 -> 点击“开始检测”
+2. 进度条依次显示“初始化设备→扫频测量...”等步骤
+3. 完成后出现检测结果卡片，包含 S11/S21 数值与判定
+4. 重复检测多次以生成历史记录
+### 4.3 AI提问
+1. 在检测结果出现后输入问题（如“这根线缆性能如何？”）
+2. 点击“询问”，若AI可用，将显示不超过80字的回答
+3. 若AI不可用，会提示“AI服务暂时不可用”
+### 4.4 历史记录
+- 点击“历史记录”按钮 → 弹出列表
+- 新的检测结果应出现在列表顶部，按时间倒序排列
+- 关闭按钮返回检测/结果界面
+### 4.5 API回归
+```bash
+# 健康检查
+curl http://localhost:5000/health
+# 触发一次检测
+curl -X POST http://localhost:5000/api/test -H "Content-Type: application/json" -d '{"cable_type":"RG316"}'
+# 历史记录
+curl http://localhost:5000/api/history
+# AI连通性
+curl http://localhost:5000/api/test-ai

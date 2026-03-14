@@ -1,0 +1,22 @@
+2026-03-14 21:17:59,762 - INFO - 线缆检测系统启动 http://0.0.0.0:5000
+2026-03-14 21:17:59,796 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.198.138.19:5000
+2026-03-14 21:17:59,798 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-14 21:18:17,888 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:17] "GET / HTTP/1.1" 200 -
+2026-03-14 21:18:18,203 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:18] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-03-14 21:18:18,223 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:18] "GET /static/js/main.js HTTP/1.1" 200 -
+2026-03-14 21:18:18,800 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:18] "GET /api/history HTTP/1.1" 200 -
+2026-03-14 21:18:18,957 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:18] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-14 21:18:22,100 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:22] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-14 21:18:23,646 - INFO - 开始检测线缆: RG316
+2026-03-14 21:18:23,648 - INFO - 使用虚拟PyVISA数据 (pyvisa=True, virtual=True)
+2026-03-14 21:18:23,652 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:23] "POST /api/test HTTP/1.1" 200 -
+2026-03-14 21:18:23,920 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:23] "GET /api/history HTTP/1.1" 200 -
+2026-03-14 21:18:42,656 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:42] "POST /api/ai-analysis HTTP/1.1" 200 -
+2026-03-14 21:18:50,014 - INFO - 127.0.0.1 - - [14/Mar/2026 21:18:50] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-14 21:19:20,031 - INFO - 127.0.0.1 - - [14/Mar/2026 21:19:20] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-14 21:19:50,206 - INFO - 127.0.0.1 - - [14/Mar/2026 21:19:50] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-14 21:20:20,139 - INFO - 127.0.0.1 - - [14/Mar/2026 21:20:20] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-14 21:20:50,477 - INFO - 127.0.0.1 - - [14/Mar/2026 21:20:50] "GET /api/test-ai HTTP/1.1" 200 -
