@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线缆检测面板</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+    <header class="hero">
+        <div>
+            <p class="hero__eyebrow">Cable QA · Online</p>
+            <h1 class="hero__title">线缆智能检测</h1>
+            <p class="hero__subtitle">支持检测 / 历史回放 / DeepSeek 快速问答</p>
+        </div>
+        <div class="hero__status">
+            <span class="status-chip online" id="device-status">虚拟仪器</span>
+            <span class="status-chip offline" id="ai-status-chip">AI 检查中…</span>
+        </div>
+    </header>
+
+    <section class="panel" id="cable-selector">
+        <div class="panel__header">
+            <h2>选择线缆类型</h2>
+            <p>请先选择并启动检测</p>
+        </div>
+        <label class="field-label" for="cable-type">线缆型号</label>
+        <div class="select-wrapper">
+            <select id="cable-type">
+                <option value="RG316">RG316</option>
+                <option value="RG58">RG58</option>
+                <option value="半刚电缆">半刚电缆</option>
+                <option value="USB-Type-C">USB-Type-C</option>
+            </select>
+        </div>
+    </section>
+
+    <section class="panel hidden" id="progress-area">
+        <div class="panel__header">
+            <h2>检测进度</h2>
+            <p id="progress-status">准备检测…</p>
+        </div>
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+        <div class="progress-meta">
+            <span id="progress-percent">0%</span>
+            <span>预计耗时 ~ 5s</span>
+        </div>
+    </section>
+
+    <section class="panel hidden" id="result-area">
+        <div class="panel__header">
+            <h2>检测结果</h2>
+            <p id="result-time">-</p>
+        </div>
+
+        <div class="result-card">
+            <div class="result-row">
+                <span>检测状态</span>
+                <span id="test-status" class="badge badge--pass">-</span>
+            </div>
+            <div class="result-row">
+                <span>线缆类型</span>
+                <span id="cable-type-display">-</span>
+            </div>
+            <div class="result-row">
+                <span>S11 (导通/短路)</span>
+                <div>
+                    <span id="s11-value">-</span>
+                    <span id="s11-status" class="status-dot">-</span>
+                </div>
+            </div>
+            <div class="result-row">
+                <span>S21 (传输)</span>
+                <div>
+                    <span id="s21-value">-</span>
+                    <span id="s21-status" class="status-dot">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel__subheader">
+            <h3>DeepSeek 快速问答</h3>
+            <p>限制 80 字以内，适合获取结论与建议</p>
+        </div>
+        <div class="ai-box">
+            <div class="ai-input">
+                <input id="ai-input" type="text" placeholder="想问AI的内容，例如：是否可出厂？">
+                <button id="ai-ask-btn">询问</button>
+            </div>
+            <div id="ai-response" class="ai-response hidden">
+                <div class="ai-response__title">🤖 AI回应</div>
+                <p id="ai-content"></p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel hidden" id="history-area">
+        <div class="panel__header history-header">
+            <div>
+                <h2>历史记录</h2>
+                <p>最近 50 条检测</p>
+            </div>
+            <button class="ghost-btn" id="close-history">×</button>
+        </div>
+        <div id="history-list" class="history-list empty">
+            <p>暂无历史记录</p>
+        </div>
+    </section>
+
+    <footer class="app-footer">
+        <button class="btn primary" id="start-test">开始检测</button>
+        <button class="btn tertiary" id="view-history">历史记录</button>
+    </footer>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>

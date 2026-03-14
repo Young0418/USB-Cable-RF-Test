@@ -1,0 +1,12 @@
+[
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -25.04,
+    "s21_mean": -1.95,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-14 21:18:23"
+  }
+]
