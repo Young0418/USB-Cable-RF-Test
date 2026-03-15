@@ -3,6 +3,136 @@
     "cable_type": "RG316",
     "qualified": false,
     "message": "RG316 不合格，请检查",
+    "s11_mean": -25.0,
+    "s21_mean": -1.94,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 17:07:54"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.97,
+    "s21_mean": -1.97,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 17:03:06"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.94,
+    "s21_mean": -1.94,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 16:48:13"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -25.05,
+    "s21_mean": -1.96,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 16:47:59"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.96,
+    "s21_mean": -1.96,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 16:40:04"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.95,
+    "s21_mean": -1.97,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 16:39:48"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.96,
+    "s21_mean": -1.97,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 16:16:58"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -24.96,
+    "s21_mean": -1.95,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:22:40"
+  },
+  {
+    "cable_type": "RG58",
+    "qualified": false,
+    "message": "RG58 不合格，请检查",
+    "s11_mean": -24.99,
+    "s21_mean": -1.96,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:21:02"
+  },
+  {
+    "cable_type": "RG58",
+    "qualified": false,
+    "message": "RG58 不合格，请检查",
+    "s11_mean": -24.97,
+    "s21_mean": -1.94,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:17:31"
+  },
+  {
+    "cable_type": "半刚电缆",
+    "qualified": false,
+    "message": "半刚电缆 不合格，请检查",
+    "s11_mean": -25.04,
+    "s21_mean": -1.97,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:17:00"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -25.02,
+    "s21_mean": -1.96,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:15:29"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
+    "s11_mean": -25.09,
+    "s21_mean": -1.96,
+    "s11_qualified": false,
+    "s21_qualified": false,
+    "timestamp": "2026-03-15 14:15:24"
+  },
+  {
+    "cable_type": "RG316",
+    "qualified": false,
+    "message": "RG316 不合格，请检查",
     "s11_mean": -25.04,
     "s21_mean": -1.95,
     "s11_qualified": false,
