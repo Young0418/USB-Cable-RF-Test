@@ -428,3 +428,14 @@
 2026-03-15 17:24:47,229 - INFO - 127.0.0.1 - - [15/Mar/2026 17:24:47] "GET /api/test-ai HTTP/1.1" 200 -
 2026-03-15 17:25:37,541 - INFO - 127.0.0.1 - - [15/Mar/2026 17:25:37] "GET /api/test-ai HTTP/1.1" 200 -
 2026-03-15 17:25:47,234 - INFO - 127.0.0.1 - - [15/Mar/2026 17:25:47] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-15 17:26:38,541 - INFO - 127.0.0.1 - - [15/Mar/2026 17:26:38] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-15 17:26:47,239 - INFO - 127.0.0.1 - - [15/Mar/2026 17:26:47] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-15 17:27:39,538 - INFO - 127.0.0.1 - - [15/Mar/2026 17:27:39] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-15 17:27:47,234 - INFO - 127.0.0.1 - - [15/Mar/2026 17:27:47] "GET /api/test-ai HTTP/1.1" 200 -
+2026-03-15 17:28:09,761 - WARNING - 未检测到 DEEPSEEK_API_KEY，AI功能不可用
+2026-03-15 17:28:09,762 - INFO - 线缆检测系统启动 http://0.0.0.0:5000
+2026-03-15 17:28:09,770 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.120.96.11:5000
+2026-03-15 17:28:09,771 - INFO - [33mPress CTRL+C to quit[0m
