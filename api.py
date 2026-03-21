@@ -26,6 +26,8 @@ async def analyze(request: AnalyzeRequest):
         result = run(request.cable_type,request.length)
         return result
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
