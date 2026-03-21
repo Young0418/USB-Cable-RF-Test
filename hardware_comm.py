@@ -13,8 +13,8 @@ def get_s_params(perform_calibration=False):
         inst.timeout = 10000
         inst.write_termination = '\n'
         inst.read_termination = '\n'
-        inst.write("FORMAT REAL")
-        inst.write(":SENSe:SWEep:POINts 1001")
+        inst.query("FORMAT REAL")
+        inst.query(":SENSe:SWEep:POINts 1001")
         # ===== 校准流程（现在不执行，只留注释）=====
         if perform_calibration:
             print("正在执行SOLT校准...")
