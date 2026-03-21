@@ -4,7 +4,15 @@ import requests
 import openai
 import os
 from streamlit.errors import StreamlitSecretNotFoundError
-from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS
+from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS
+from copy import deepcopy
+from datetime import datetime
+
+
+def get_closest_length(target_length, supported_lengths):
+    if not supported_lengths:
+        return None
+    return min(supported_lengths, key=lambda L: abs(L - target_length))
 
 
 # ---------- 安全获取 DeepSeek API 密钥 ----------
@@ -15,7 +23,7 @@ except StreamlitSecretNotFoundError:
     DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 if not DEEPSEEK_API_KEY:
-    st.error("❌ 未找到 DeepSeek API 密钥，请在环境变量或 ..streamlit/secrets.toml 中设置 DEEPSEEK_API_KEY")
+    st.error("未找到 DeepSeek API 密钥，请在环境变量或 ..streamlit/secrets.toml 中设置 DEEPSEEK_API_KEY")
     st.stop()
 
 client = openai.OpenAI(
@@ -25,7 +33,7 @@ client = openai.OpenAI(
 
 # ---------- Streamlit 页面配置 ----------
 st.set_page_config(page_title="USB线缆检测系统 (AI 增强版)", layout="wide")
-st.title("🔌 USB 线缆 S 参数检测 + DeepSeek 智能分析")
+st.title("USB 线缆 S 参数检测 + DeepSeek 智能分析")
 st.sidebar.header("操作面板")
 
 cable_options = list(MEAN_THRESHOLDS.keys())
@@ -40,6 +48,16 @@ cable_length = st.sidebar.number_input(
     help="输入被测线缆的实际长度，用于S21阈值计算（损耗与长度成正比）"
 )
 
+# 自动匹配最接近的长度
+use_len = get_closest_length(cable_length, SUPPORTED_LENGTHS)
+if selected_cable in FREQ_THRESHOLDS and use_len in FREQ_THRESHOLDS[selected_cable]:
+    freq_config = FREQ_THRESHOLDS[selected_cable][use_len]
+else:
+    freq_config = DEFAULT_FREQ_THRESHOLD
+
+s11_th = freq_config["S11"][0]
+s21_th = freq_config["S21"][0]
+
 API_URL = "http://localhost:8000/analyze"
 
 # ---------- 初始化会话状态 ----------
@@ -48,9 +66,13 @@ if "detection_result" not in st.session_state:
 if "ai_analysis_triggered" not in st.session_state:
     st.session_state.ai_analysis_triggered = False
 if "conversation" not in st.session_state:
-    st.session_state.conversation = []          # 存储对话历史，每条为 {"role": "assistant"/"user", "content": str}
+    st.session_state.conversation = []
 if "remaining_questions" not in st.session_state:
     st.session_state.remaining_questions = 0
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "history_selected" not in st.session_state:
+    st.session_state.history_selected = None
 
 def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专家，回复简洁易懂。") -> str:
     """调用 DeepSeek API 生成回答"""
@@ -66,7 +88,7 @@ def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"🤖 AI 分析暂时不可用：{str(e)}"
+        return f"AI 分析暂时不可用：{str(e)}"
 
 # ---------- 开始检测按钮 ----------
 if st.sidebar.button("开始检测"):
@@ -80,6 +102,19 @@ if st.sidebar.button("开始检测"):
             resp.raise_for_status()
             result = resp.json()
             st.session_state.detection_result = result
+
+            history_entry = {
+                "record_id": len(st.session_state.history) + 1,
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "cable_type": selected_cable,
+                "length": float(cable_length),
+                "qualified": result.get("qualified"),
+                "message": result.get("message"),
+                "result": deepcopy(result)
+            }
+            st.session_state.history.insert(0, history_entry)
+            st.session_state.history_selected = history_entry["record_id"]
+
             # 重置 AI 相关状态
             st.session_state.ai_analysis_triggered = False
             st.session_state.conversation = []
@@ -92,16 +127,16 @@ if st.sidebar.button("开始检测"):
 if st.session_state.detection_result:
     result = st.session_state.detection_result
 
-    st.subheader("📋 设备信息")
+    st.subheader("设备信息")
     dev_info = result['device_info']
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("仪器型号", dev_info.get('model', 'N/A'))
     col2.metric("硬件线缆类型", dev_info.get('cable_type', 'N/A'))
     col3.metric("测试时间", dev_info.get('test_time', 'N/A'))
     col4.metric("用户选择", selected_cable)
-    st.caption(f"线缆长度：{cable_length} 米")
+    st.caption(f"线缆长度：{cable_length} 米 → 匹配阈值长度：{use_len} 米")
 
-    st.subheader("✅ 检测结果")
+    st.subheader("检测结果")
     if result['qualified']:
         st.success(f"线缆合格：{result['message']}")
     else:
@@ -110,7 +145,6 @@ if st.session_state.detection_result:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**S11 参数**")
-        s11_th = FREQ_THRESHOLDS[selected_cable]["S11"][0]
         if result['s11_qualified']:
             st.info(f"S11 合格 (所有点 < {s11_th} dB)")
         else:
@@ -125,7 +159,6 @@ if st.session_state.detection_result:
 
     with col2:
         st.markdown("**S21 参数**")
-        s21_th = FREQ_THRESHOLDS[selected_cable]["S21"][0]
         if result['s21_qualified']:
             st.info(f"S21 合格 (所有点 > {s21_th} dB)")
         else:
@@ -143,12 +176,52 @@ if st.session_state.detection_result:
 
     # ---------- AI 分析部分 ----------
     st.markdown("---")
-    st.subheader("🤖 AI 智能分析")
+
+    st.subheader("历史检测记录")
+    history = st.session_state.history
+    if history:
+        history_df = pd.DataFrame([
+            {
+                "记录ID": rec["record_id"],
+                "检测时间": rec["time"],
+                "线缆": rec["cable_type"],
+                "长度(m)": rec["length"],
+                "整体验收": "合格" if rec["qualified"] else "不合格",
+                "备注": rec["message"]
+            }
+            for rec in history
+        ])
+        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        options = {f'#{rec["record_id"]} | {rec["time"]} | {rec["cable_type"]}':
+                   rec["record_id"] for rec in history}
+        selected_label = st.selectbox(
+            "选择一条历史记录进行回放：",
+            options=list(options.keys()),
+            key="history_select",
+        )
+        col_hist1, col_hist2 = st.columns([1, 1])
+        if col_hist1.button("加载该记录", use_container_width=True):
+            selected_id = options[selected_label]
+            selected_record = next((rec for rec in history if rec["record_id"] == selected_id), None)
+            if selected_record:
+                st.session_state.detection_result = deepcopy(selected_record["result"])
+                st.session_state.ai_analysis_triggered = False
+                st.session_state.conversation = []
+                st.session_state.remaining_questions = 0
+                st.session_state.history_selected = selected_id
+                st.rerun()
+        if col_hist2.button("清空历史记录", use_container_width=True):
+            st.session_state.history.clear()
+            st.session_state.history_selected = None
+            st.rerun()
+    else:
+        st.info("暂无历史数据，点击“开始检测”后会自动保存每一次结果。")
+
+    st.subheader("AI 智能分析")
 
     if not st.session_state.ai_analysis_triggered:
         if st.button("进行AI分析"):
             with st.spinner("AI 正在思考中..."):
-                # 构造初始分析提示
                 init_prompt = f"""
 你是一个射频线缆检测专家。以下是某次 USB 线缆 S 参数检测的结果：
 
@@ -167,28 +240,22 @@ if st.session_state.detection_result:
                 st.session_state.conversation.append({"role": "assistant", "content": initial_analysis})
                 st.session_state.remaining_questions = 3
                 st.session_state.ai_analysis_triggered = True
-                st.rerun()  # 刷新页面以显示对话
+                st.rerun()
     else:
-        # 显示对话历史
         for msg in st.session_state.conversation:
             if msg["role"] == "assistant":
                 st.info(f"🧠 AI：{msg['content']}")
             else:
                 st.markdown(f"👤 你：{msg['content']}")
 
-        # 处理用户提问（最多3次）
         if st.session_state.remaining_questions > 0:
             with st.form(key="question_form"):
                 user_question = st.text_input(f"你有什么问题想问AI？（剩余 {st.session_state.remaining_questions} 次）")
                 submitted = st.form_submit_button("发送")
                 if submitted and user_question.strip():
-                    # 记录用户问题
                     st.session_state.conversation.append({"role": "user", "content": user_question})
                     st.session_state.remaining_questions -= 1
-
-                    # 调用 AI 回答
                     with st.spinner("AI 正在回答..."):
-                        # 构建带上下文的提示（可简化为仅当前问题，或包含最近几条）
                         answer = call_deepseek(user_question)
                         st.session_state.conversation.append({"role": "assistant", "content": answer})
                     st.rerun()
