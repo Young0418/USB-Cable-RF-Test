@@ -15,7 +15,7 @@ def get_cable_data():
 
 
 # 核心分析函数：函数名和输出字典格式严格保持不变
-def analyze_s_params(hardware_data, cable_type):
+def analyze_s_params(hardware_data, cable_type,length):
     """
     分析S参数，支持按不同频率点设置不同合格阈值
     函数名、输出字典格式与原 analysis_protocol 完全一致

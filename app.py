@@ -4,8 +4,7 @@ import requests
 import openai
 import os
 from streamlit.errors import StreamlitSecretNotFoundError
-from cable_thresholds import FREQ_THRESHOLDS
-from elabel.cable_thresholds import MEAN_THRESHOLDS
+from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS
 
 
 # ---------- 安全获取 DeepSeek API 密钥 ----------
@@ -31,6 +30,15 @@ st.sidebar.header("操作面板")
 
 cable_options = list(MEAN_THRESHOLDS.keys())
 selected_cable = st.sidebar.selectbox("选择线缆类型", cable_options)
+
+cable_length = st.sidebar.number_input(
+    "线缆长度 (m)",
+    min_value=0.1,
+    max_value=100.0,
+    value=1.0,
+    step=0.1,
+    help="输入被测线缆的实际长度，用于S21阈值计算（损耗与长度成正比）"
+)
 
 API_URL = "http://localhost:8000/analyze"
 
@@ -64,7 +72,11 @@ def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专
 if st.sidebar.button("开始检测"):
     with st.spinner("正在调用后端 API 进行分析..."):
         try:
-            resp = requests.post(API_URL, json={"cable_type": selected_cable}, timeout=30)
+            resp = requests.post(
+                API_URL,
+                json={"cable_type":selected_cable, "length":cable_length},
+                timeout=30
+            )
             resp.raise_for_status()
             result = resp.json()
             st.session_state.detection_result = result
@@ -87,6 +99,7 @@ if st.session_state.detection_result:
     col2.metric("硬件线缆类型", dev_info.get('cable_type', 'N/A'))
     col3.metric("测试时间", dev_info.get('test_time', 'N/A'))
     col4.metric("用户选择", selected_cable)
+    st.caption(f"线缆长度：{cable_length} 米")
 
     st.subheader("✅ 检测结果")
     if result['qualified']:
@@ -145,6 +158,7 @@ if st.session_state.detection_result:
 - S21 合格：{'是' if result.get('s21_qualified') else '否'}
 - S11 均值：{result['analysis_detail'].get('s11_mean')} dB
 - S21 均值：{result['analysis_detail'].get('s21_mean')} dB
+- 线缆长度：{cable_length} 米
 - 系统消息：{result.get('message')}
 
 请用 50 字以内给出一个简短、易懂的结论，并可以提一句建议（比如是否需要更换线缆、调整测试环境等）。语气要友好，适合展示给普通用户。
