@@ -7,6 +7,7 @@ app = FastAPI(title="USB线缆检测API")
 
 class AnalyzeRequest(BaseModel):
     cable_type: str
+    length:float=1.0 #线缆长度：单位：米
 
 class AnalyzeResponse(BaseModel):
     device_info: dict
@@ -22,7 +23,7 @@ class AnalyzeResponse(BaseModel):
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest):
     try:
-        result = run(request.cable_type)
+        result = run(request.cable_type,request.length)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

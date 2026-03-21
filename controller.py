@@ -3,12 +3,12 @@
 from hardware_comm import get_s_params
 from data_analysis_amended import analyze_s_params
 
-def run(cable_type):
+def run(cable_type,length):
     try:
         # 1. 调用硬件同学的函数，获取硬件协议字典
         hardware_dict = get_s_params()
         # 2. 调用数据分析同学的函数，获取分析判定协议字典
-        analysis_dict = analyze_s_params(hardware_dict,cable_type)
+        analysis_dict = analyze_s_params(hardware_dict,cable_type,length)
         analysis_dict["cable_type"] = cable_type
         # 3. 直接返回（已符合页面要求的analysis_protocol格式）
         return analysis_dict
