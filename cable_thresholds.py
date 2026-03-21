@@ -92,3 +92,5 @@ DEFAULT_FREQ_THRESHOLD = {
     "S11": [-20, -20],
     "S21": [-3, -3]
 }
+
+SUPPORTED_LENGTHS = [5, 10, 20]
