@@ -74,6 +74,15 @@ if "history" not in st.session_state:
 if "history_selected" not in st.session_state:
     st.session_state.history_selected = None
 
+if "batch_mode" not in st.session_state:
+    st.session_state.batch_mode = False
+if "batch_index" not in st.session_state:
+    st.session_state.batch_index = 0
+if "batch_results" not in st.session_state:
+    st.session_state.batch_results = []
+if "batch_total" not in st.session_state:
+    st.session_state.batch_total = 0
+
 def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专家，回复简洁易懂。") -> str:
     """调用 DeepSeek API 生成回答"""
     try:
@@ -89,6 +98,86 @@ def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"AI 分析暂时不可用：{str(e)}"
+
+#批量检测界面
+if st.session_state.batch_mode:
+    st.sidebar.info(f"批量模式: {st.session_state.batch_index}/{st.session_state.batch_total}")
+    st.subheader("📦 批量检测模式")
+
+    if st.session_state.batch_index < st.session_state.batch_total:
+        st.info(f"请连接第 {st.session_state.batch_index + 1} 根线缆，然后点击下方按钮开始测量")
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("📡 开始测量当前线缆", key="batch_measure_btn"):
+                with st.spinner(f"正在测量第 {st.session_state.batch_index + 1} 根线缆..."):
+                    try:
+                        resp = requests.post(
+                            API_URL,
+                            json={"cable_type": selected_cable, "length": cable_length},
+                            timeout=30
+                        )
+                        resp.raise_for_status()
+                        result = resp.json()
+                        # 保存结果
+                        st.session_state.batch_results.append(result)
+                        st.session_state.batch_index += 1
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"测量失败: {e}")
+                        st.session_state.batch_mode = False
+                        st.rerun()
+        with col_b2:
+            if st.button("❌ 取消批量检测", key="cancel_batch"):
+                st.session_state.batch_mode = False
+                st.rerun()
+    else:
+        st.success("🎉 批量检测完成！")
+        if st.session_state.batch_results:
+            batch_df = pd.DataFrame([
+                {
+                    "序号": i+1,
+                    "合格": r.get("qualified", False),
+                    "S11合格": r.get("s11_qualified", False),
+                    "S21合格": r.get("s21_qualified", False),
+                    "消息": r.get("message", "")
+                } for i, r in enumerate(st.session_state.batch_results)
+            ])
+            st.subheader("📊 批量检测结果汇总")
+            st.dataframe(batch_df, use_container_width=True)
+            # 导出 CSV
+            csv = batch_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "⬇️ 导出结果 (CSV)",
+                csv,
+                "batch_results.csv",
+                "text/csv",
+                key="batch_export"
+            )
+        if st.button("🗑️ 清除本次批量结果并退出", key="clear_batch"):
+            st.session_state.batch_mode = False
+            st.session_state.batch_results = []
+            st.rerun()
+    st.stop()  # 批量模式下不显示单次检测内容
+
+#批量检测按钮
+st.sidebar.subheader("批量检测")
+batch_count = st.sidebar.number_input(
+    "线缆数量",
+    min_value=1,
+    max_value=20,
+    value=3,
+    step=1,
+    key="batch_count_input",
+    help="输入本次要测量的线缆数量"
+)
+if st.sidebar.button("开始批量测量", key="start_batch"):
+    st.session_state.batch_mode = True
+    st.session_state.batch_index = 0
+    st.session_state.batch_results = []
+    st.session_state.batch_total = batch_count
+    st.rerun()
+
+st.sidebar.markdown("---")
 
 # ---------- 开始检测按钮 ----------
 if st.sidebar.button("开始检测"):
@@ -123,7 +212,7 @@ if st.sidebar.button("开始检测"):
             st.error(f"后端调用失败：{e}")
             st.stop()
 
-# ---------- 显示检测结果（如果有） ----------
+# ---------- 显示检测结果 ----------
 if st.session_state.detection_result:
     result = st.session_state.detection_result
 
