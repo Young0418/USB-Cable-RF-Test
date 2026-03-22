@@ -4,3 +4,24 @@
 2026-03-22 10:52:49,531 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
 2026-03-22 10:52:49,571 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
 2026-03-22 10:52:49,578 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:50:07,471 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:50:07,484 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:50:07,501 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:50:55,848 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:50:55,879 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:50:55,884 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:51:01,004 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:51:01,006 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:51:01,011 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:51:11,549 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:51:11,551 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:51:11,560 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:53:46,071 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:53:46,073 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:53:46,081 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:53:53,701 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:53:53,702 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:53:53,707 - hardware_comm - INFO - 数据获取成功
+2026-03-22 11:54:01,836 - hardware_comm - INFO - 尝试连接仪器 (第 1/3 次)
+2026-03-22 11:54:01,838 - hardware_comm - INFO - 仪器型号: SiYi,3674,Virtual,1.0
+2026-03-22 11:54:01,843 - hardware_comm - INFO - 数据获取成功
