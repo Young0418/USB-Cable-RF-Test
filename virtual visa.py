@@ -5,7 +5,7 @@ import math
 import time
 
 # 2. 定义模拟S参数的生成函数（复数形式）
-def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable_quality="bad"):
+def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable_quality="bool"):
     """
     生成模拟的复数S11和S21数据。支持不同种类线缆
     返回格式：两个列表，每个元素是复数(实部, 虚部)
@@ -27,14 +27,11 @@ def generate_complex_s_data(num_points=1001, freq_start=1e6, freq_stop=3e9,cable
             s21_mag = -0.8 + 0.3 * math.cos(2 * math.pi * 1.8 * i / num_points)  # 略微下降
         elif cable_quality == "bad":
             # 坏线：在某个频点有大的反射峰，或者整体损耗很大
-            # 模拟一个谐振峰
-            resonance_freq = 1.8e9
-            # 高斯峰，峰值 -5dB，宽度 0.2GHz
-            s11_mag = -15 - 10 * math.exp(-((f - resonance_freq) / 0.2e9) ** 2)
-            # 在其他频率，S11 也偏高（-10 ~ -15）
-            s11_mag += -10 + 2 * math.sin(2 * math.pi * 1.0 * i / num_points)
-            # S21 整体损耗大，且在谐振频率附近额外衰减
-            s21_mag = -3 - 2 * (f / freq_stop) - 3 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)
+            resonance_freq = 1.8e9  # 故障频点
+            # S11：在谐振点反射变大（S11数值变大）
+            s11_mag = -20 + 15 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)  # 峰值 -5 dB
+            # S21：整体损耗大，在谐振点额外衰减
+            s21_mag = -3 - 4 * (f / freq_stop) - 3 * math.exp(-((f - resonance_freq) / 0.3e9) ** 2)
         elif cable_quality == "marginal":
             # 边缘线：接近合格阈值，可能在某些频点刚好超标
             s11_mag = -20 + 4 * math.sin(2 * math.pi * 3.0 * i / num_points)  # 振幅4dB，有时高于-20
@@ -74,7 +71,7 @@ instrument_state = {
     "selected_parameter": "S11",
     "s11_data": None,             # 当前生成的S11复数数据
     "s21_data": None,               # 当前生成的S21复数数据
-    "cable_quality": "good",
+    "cable_quality": "bad",
 }
 
 # 5. 辅助函数：刷新数据（当设置改变时重新生成）
