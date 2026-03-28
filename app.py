@@ -4,7 +4,7 @@ import requests
 import openai
 import os
 from streamlit.errors import StreamlitSecretNotFoundError
-from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS
+from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS,DEFAULT_FREQ_THRESHOLD
 from copy import deepcopy
 from datetime import datetime
 
@@ -74,6 +74,9 @@ if "history" not in st.session_state:
 if "history_selected" not in st.session_state:
     st.session_state.history_selected = None
 
+if "selected_batch_idx" not in st.session_state:
+    st.session_state.selected_batch_idx = None
+
 if "batch_mode" not in st.session_state:
     st.session_state.batch_mode = False
 if "batch_index" not in st.session_state:
@@ -133,18 +136,63 @@ if st.session_state.batch_mode:
     else:
         st.success("🎉 批量检测完成！")
         if st.session_state.batch_results:
+            # 构建汇总 DataFrame（用于导出 CSV）
             batch_df = pd.DataFrame([
                 {
-                    "序号": i+1,
+                    "序号": i + 1,
                     "合格": r.get("qualified", False),
                     "S11合格": r.get("s11_qualified", False),
                     "S21合格": r.get("s21_qualified", False),
                     "消息": r.get("message", "")
                 } for i, r in enumerate(st.session_state.batch_results)
             ])
+
             st.subheader("📊 批量检测结果汇总")
-            st.dataframe(batch_df, use_container_width=True)
-            # 导出 CSV
+            # 手动展示每一条结果，方便加入按钮
+            for idx, r in enumerate(st.session_state.batch_results):
+                cols = st.columns([1, 2, 3, 1])
+                with cols[0]:
+                    st.write(f"**{idx + 1}**")
+                with cols[1]:
+                    qualified = r.get("qualified", False)
+                    st.write("✅ 合格" if qualified else "❌ 不合格")
+                with cols[2]:
+                    st.write(r.get("message", "")[:50])
+                with cols[3]:
+                    if st.button("📈 查看曲线", key=f"view_curve_{idx}"):
+                        st.session_state.selected_batch_idx = idx
+                        st.rerun()
+                st.divider()
+
+            # 如果选中了某条记录，显示其曲线
+            if st.session_state.selected_batch_idx is not None:
+                idx = st.session_state.selected_batch_idx
+                r = st.session_state.batch_results[idx]
+                st.subheader(f"线缆 #{idx + 1} 的 S 参数曲线")
+                # S11 曲线
+                freq_s11 = r['s11_data'][0] if r['s11_data'] else []
+                mag_s11 = r['s11_data'][1] if r['s11_data'] else []
+                if freq_s11 and mag_s11:
+                    freq_mhz = [f/1e6 for f in freq_s11]
+                    df_s11 = pd.DataFrame({'频率 (MHz)': freq_mhz, 'S11 (dB)': mag_s11})
+                    st.line_chart(df_s11.set_index('频率 (MHz)'))
+                else:
+                    st.write("无 S11 数据")
+                # S21 曲线
+                freq_s21 = r['s21_data'][0] if r['s21_data'] else []
+                mag_s21 = r['s21_data'][1] if r['s21_data'] else []
+                if freq_s21 and mag_s21:
+                    freq_mhz = [f/1e6 for f in freq_s21]
+                    df_s21 = pd.DataFrame({'频率 (MHz)': freq_mhz, 'S21 (dB)': mag_s21})
+                    st.line_chart(df_s21.set_index('频率 (MHz)'))
+                else:
+                    st.write("无 S21 数据")
+                # 关闭按钮
+                if st.button("❌ 关闭曲线", key="close_curve"):
+                    st.session_state.selected_batch_idx = None
+                    st.rerun()
+
+            # 导出 CSV 按钮
             csv = batch_df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 "⬇️ 导出结果 (CSV)",
@@ -153,10 +201,7 @@ if st.session_state.batch_mode:
                 "text/csv",
                 key="batch_export"
             )
-        if st.button("🗑️ 清除本次批量结果并退出", key="clear_batch"):
-            st.session_state.batch_mode = False
-            st.session_state.batch_results = []
-            st.rerun()
+
     st.stop()  # 批量模式下不显示单次检测内容
 
 #批量检测按钮
@@ -175,6 +220,7 @@ if st.sidebar.button("开始批量测量", key="start_batch"):
     st.session_state.batch_index = 0
     st.session_state.batch_results = []
     st.session_state.batch_total = batch_count
+    st.session_state.selected_batch_idx = None  # 添加重置
     st.rerun()
 
 st.sidebar.markdown("---")
