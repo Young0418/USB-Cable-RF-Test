@@ -71,7 +71,7 @@ instrument_state = {
     "selected_parameter": "S11",
     "s11_data": None,             # 当前生成的S11复数数据
     "s21_data": None,               # 当前生成的S21复数数据
-    "cable_quality": "bad",
+    "cable_quality": "good",
 }
 
 # 5. 辅助函数：刷新数据（当设置改变时重新生成）
