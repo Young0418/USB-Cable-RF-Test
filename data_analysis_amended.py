@@ -1,4 +1,4 @@
-# 模拟硬件数据函数（用于测试，可替换为真实硬件接口）
+# data_analysis_amended.py
 import numpy as np
 from cable_thresholds import (
     FREQ_THRESHOLDS,
@@ -14,7 +14,7 @@ def get_cable_data():
         "S11": [-21.1, -22.2, -23.3, -24.4, -25.5],
         "S21": [-1.1, -2.2, -3.1, -4.2, -5.1],
         "device_info": {"model": "思仪3674", "test_time": "2026-02-21 10:00:00"},
-        "test_points": [1e9, 2e9, 3e9, 4e9, 5e9]  # 5个频率点（单位Hz）
+        "test_points": [1e9, 2e9, 3e9, 4e9, 5e9]  # 单位：Hz
     }
 
 
@@ -48,17 +48,21 @@ def analyze_s_params(hardware_data, cable_type, length):
     for idx, freq in enumerate(test_points):
         s11_th = np.interp(freq, freq_table, s11_th_table)
         s21_th = np.interp(freq, freq_table, s21_th_table)
+
+        # S11：值要 < 阈值才算合格（反射越小越好）
         if s11[idx] >= s11_th:
             s11_qualified = False
-        if s21[idx] <= s21_th:  # S21需大于阈值
+
+        # S21：值要 > 阈值才算合格（损耗越小越好）
+        if s21[idx] <= s21_th:
             s21_qualified = False
 
     overall_qualified = s11_qualified and s21_qualified
     mean_th = MEAN_THRESHOLDS.get(cable_type, DEFAULT_MEAN)
 
     # 计算均值
-    s11_mean = sum(s11) / len(s11) if s11 else 0.0
-    s21_mean = sum(s21) / len(s21) if s21 else 0.0
+    s11_mean = sum(s11) / len(s11) if len(s11) > 0 else 0.0
+    s21_mean = sum(s21) / len(s21) if len(s21) > 0 else 0.0
 
     # 生成状态描述
     if overall_qualified:
@@ -66,7 +70,8 @@ def analyze_s_params(hardware_data, cable_type, length):
             status = "性能良好"
         else:
             status = "合格"
-        msg = f"{cable_type}({length}m) {status} (S11均值 {s11_mean:.1f}dB, S21均值 {s21_mean:.1f}dB)"
+        msg = (f"{cable_type}({length}m) {status} "
+               f"(S11均值 {s11_mean:.1f}dB, S21均值 {s21_mean:.1f}dB)")
     else:
         msg = f"{cable_type}({length}m) 不合格，请检查"
 
@@ -88,10 +93,11 @@ def analyze_s_params(hardware_data, cable_type, length):
     return result
 
 
-# 主函数（用于测试，补全length参数）
 def main():
     hardware_data = get_cable_data()
-    # 传入完整参数：硬件数据、线缆类型、长度
+
+    # 支持 6 种线缆：
+    # "RG316", "RG58", "半刚电缆", "RG174", "LMR-200", "RG6"
     result = analyze_s_params(hardware_data, "RG316", 10)
 
     print("===== 分析结果 =====")
