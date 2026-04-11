@@ -1,4 +1,3 @@
-# data_analysis_amended.py
 import numpy as np
 from cable_thresholds import (
     FREQ_THRESHOLDS,
@@ -16,6 +15,29 @@ def get_cable_data():
         "device_info": {"model": "思仪3674", "test_time": "2026-02-21 10:00:00"},
         "test_points": [1e9, 2e9, 3e9, 4e9, 5e9]  # 单位：Hz
     }
+
+
+# ===================== 【新增】DTF 计算函数（只算数据，不画图）=====================
+def compute_dtf(freq, s11_db, vf=0.77):
+    c = 3e8
+    freq = np.array(freq)
+    s11_db = np.array(s11_db)
+    n = len(freq)
+    if n < 2:
+        return [], []
+
+    df = freq[1] - freq[0]
+    s11_linear = 10 ** (s11_db / 20)
+    s11_complex = s11_linear * np.exp(1j * 0.0)
+    time_domain = np.fft.ifft(s11_complex)
+    distance = np.arange(n) * c / (2 * vf * n * df)
+    dtf_db = 20 * np.log10(np.abs(time_domain))
+
+    # 返回：距离数组 + 反射dB数组
+    return distance.tolist(), dtf_db.tolist()
+
+
+# ==================================================================================
 
 
 # 核心分析函数：函数名和输出字典格式严格保持不变
@@ -64,6 +86,9 @@ def analyze_s_params(hardware_data, cable_type, length):
     s11_mean = sum(s11) / len(s11) if len(s11) > 0 else 0.0
     s21_mean = sum(s21) / len(s21) if len(s21) > 0 else 0.0
 
+    # ===================== 【新增】计算 DTF =====================
+    distance, dtf_amp = compute_dtf(test_points, s11)
+
     # 生成状态描述
     if overall_qualified:
         if s11_mean < mean_th["s11_mean_good"] and s21_mean > mean_th["s21_mean_good"]:
@@ -85,6 +110,7 @@ def analyze_s_params(hardware_data, cable_type, length):
         "s21_qualified": s21_qualified,
         "s11_data": [test_points, s11],
         "s21_data": [test_points, s21],
+        "dtf_data": [distance, dtf_amp],  # <--- 【新增】直接返回DTF结果
         "analysis_detail": {
             "s11_mean": round(s11_mean, 2),
             "s21_mean": round(s21_mean, 2)
@@ -95,11 +121,7 @@ def analyze_s_params(hardware_data, cable_type, length):
 
 def main():
     hardware_data = get_cable_data()
-
-    # 支持 6 种线缆：
-    # "RG316", "RG58", "半刚电缆", "RG174", "LMR-200", "RG6"
     result = analyze_s_params(hardware_data, "RG316", 10)
-
     print("===== 分析结果 =====")
     for k, v in result.items():
         print(f"{k}: {v}")
