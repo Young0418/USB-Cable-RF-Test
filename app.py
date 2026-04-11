@@ -5,10 +5,18 @@ import openai
 import os
 import numpy as np
 from streamlit.errors import StreamlitSecretNotFoundError
-from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS,DEFAULT_FREQ_THRESHOLD
+from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS,DEFAULT_FREQ_THRESHOLD,DEFAULT_MEAN
 from copy import deepcopy
 from datetime import datetime
-
+import matplotlib.pyplot as plt
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import ImageReader
+import io
+import tempfile
 
 def get_closest_length(target_length, supported_lengths):
     if not supported_lengths:
@@ -87,6 +95,10 @@ if "batch_results" not in st.session_state:
     st.session_state.batch_results = []
 if "batch_total" not in st.session_state:
     st.session_state.batch_total = 0
+if "batch_cable" not in st.session_state:
+    st.session_state.batch_cable = ""
+if "batch_length" not in st.session_state:
+    st.session_state.batch_length = 1.0
 
 # token限制（目前2400，可长对话）
 def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专家，回复简洁易懂。") -> str:
@@ -192,11 +204,211 @@ def get_threshold_comparison(cable_type, length, result):
     return comparison_text
 
 
+def generate_pdf_report(result, cable_length, selected_cable, s11_th, s21_th):
+    """生成包含曲线和检测结果的 PDF 报告（英文版，避免中文乱码）"""
+    import matplotlib.pyplot as plt
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    # 线缆类型英文映射
+    cable_type_map = {
+        "RG316": "RG316",
+        "RG58": "RG58",
+        "半刚电缆": "Semi-rigid"
+    }
+    cable_type_display = cable_type_map.get(selected_cable, selected_cable)
+
+    # 构建英文消息
+    s11_mean = result['analysis_detail'].get('s11_mean', 0)
+    s21_mean = result['analysis_detail'].get('s21_mean', 0)
+    message = f"{cable_type_display} {'PASS' if result['qualified'] else 'FAIL'} (S11 mean {s11_mean:.1f} dB, S21 mean {s21_mean:.1f} dB)"
+
+    # 创建临时文件保存曲线图
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_s11, \
+         tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_s21:
+        # 绘制 S11 曲线
+        fig, ax = plt.subplots(figsize=(8, 4))
+        freq_s11 = result['s11_data'][0] if result['s11_data'] else []
+        mag_s11 = result['s11_data'][1] if result['s11_data'] else []
+        if freq_s11 and mag_s11:
+            ax.plot(freq_s11, mag_s11, 'b-', label='S11')
+            ax.axhline(y=s11_th, color='r', linestyle='--', label=f'Threshold {s11_th} dB')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('S11 (dB)')
+            ax.set_title('S11 Parameter Curve')
+            ax.legend()
+            ax.grid(True)
+            plt.savefig(tmp_s11.name, dpi=150, bbox_inches='tight', pad_inches=0.2)
+            plt.close()
+
+        # 绘制 S21 曲线
+        fig, ax = plt.subplots(figsize=(8, 4))
+        freq_s21 = result['s21_data'][0] if result['s21_data'] else []
+        mag_s21 = result['s21_data'][1] if result['s21_data'] else []
+        if freq_s21 and mag_s21:
+            ax.plot(freq_s21, mag_s21, 'g-', label='S21')
+            ax.axhline(y=s21_th, color='r', linestyle='--', label=f'Threshold {s21_th} dB')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('S21 (dB)')
+            ax.set_title('S21 Parameter Curve')
+            ax.legend()
+            ax.grid(True)
+            plt.savefig(tmp_s21.name, dpi=150, bbox_inches='tight', pad_inches=0.2)
+            plt.close()
+
+    # 生成 PDF
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 30
+
+    # Title
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(30, y, "Cable Test Report")
+    y -= 40
+
+    # Device Information
+    c.setFont("Helvetica", 12)
+    dev_info = result['device_info']
+    c.drawString(30, y, f"Instrument: {dev_info.get('model', 'N/A')}")
+    y -= 20
+    c.drawString(30, y, f"Test Time: {dev_info.get('test_time', 'N/A')}")
+    y -= 20
+    c.drawString(30, y, f"Cable Type: {cable_type_display}")
+    y -= 20
+    c.drawString(30, y, f"Cable Length: {cable_length} m")
+    y -= 30
+
+    # Test Result
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(30, y, "Test Result")
+    y -= 25
+    c.setFont("Helvetica", 12)
+    c.drawString(30, y, f"Overall: {'PASS' if result['qualified'] else 'FAIL'}")
+    y -= 20
+    c.drawString(30, y, f"Message: {message}")
+    y -= 30
+
+    c.drawString(30, y, f"S11: {'PASS' if result['s11_qualified'] else 'FAIL'} (Threshold {s11_th} dB)")
+    y -= 20
+    c.drawString(30, y, f"S21: {'PASS' if result['s21_qualified'] else 'FAIL'} (Threshold {s21_th} dB)")
+    y -= 40
+
+    # Embed curves
+    if freq_s11 and mag_s11:
+        c.drawString(30, y, "S11 Curve")
+        y -= 20
+        img_s11 = ImageReader(tmp_s11.name)
+        c.drawImage(img_s11, 30, y-150, width=width-60, height=150, preserveAspectRatio=True)
+        y -= 170
+
+    if freq_s21 and mag_s21:
+        c.drawString(30, y, "S21 Curve")
+        y -= 20
+        img_s21 = ImageReader(tmp_s21.name)
+        c.drawImage(img_s21, 30, y-150, width=width-60, height=150, preserveAspectRatio=True)
+
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
+
+# ========== 生成 e‑label 图片（二维码 + 文字标签）==========
+def generate_elabel(result, cable_length, selected_cable):
+    """
+    生成一个简单的 e‑label 图片（PNG），包含线缆信息、检测结果、测试时间。
+    返回图片的字节流，可直接用于 st.download_button。
+    """
+    import qrcode
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+    import numpy as np
+
+    # 准备要编码到二维码中的信息（简洁版）
+    qr_data = (
+        f"Cable: {selected_cable}\n"
+        f"Length: {cable_length}m\n"
+        f"Pass: {'YES' if result['qualified'] else 'NO'}\n"
+        f"S11: {result['analysis_detail'].get('s11_mean',0):.1f}dB\n"
+        f"S21: {result['analysis_detail'].get('s21_mean',0):.1f}dB\n"
+        f"Time: {datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    )
+
+    # 生成二维码
+    qr = qrcode.QRCode(box_size=4, border=1)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+    # 创建画布（尺寸 500x300，白色背景）
+    label_img = Image.new('RGB', (500, 300), 'white')
+    draw = ImageDraw.Draw(label_img)
+
+    # 尝试使用系统字体（Windows 下用 simhei.ttf，若没有则用默认）
+    try:
+        font_title = ImageFont.truetype("simhei.ttf", 20)
+        font_text = ImageFont.truetype("simhei.ttf", 16)
+    except:
+        font_title = ImageFont.load_default()
+        font_text = ImageFont.load_default()
+
+    # 绘制文字区域（左侧）
+    text_lines = [
+        f"线缆类型: {selected_cable}",
+        f"长度: {cable_length} m",
+        f"合格状态: {'合格' if result['qualified'] else '不合格'}",
+        f"S11均值: {result['analysis_detail'].get('s11_mean',0):.1f} dB",
+        f"S21均值: {result['analysis_detail'].get('s21_mean',0):.1f} dB",
+        f"测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    ]
+    y = 20
+    for line in text_lines:
+        draw.text((20, y), line, fill='black', font=font_text)
+        y += 25
+
+    # 将二维码粘贴到右侧（位置 x=330, y=30）
+    qr_img = qr_img.resize((150, 150))
+    label_img.paste(qr_img, (330, 30))
+
+    # 保存到字节流
+    img_bytes = io.BytesIO()
+    label_img.save(img_bytes, format='PNG')
+    img_bytes.seek(0)
+    return img_bytes.getvalue()
+# ========== 新增结束 ==========
 #批量检测界面
 if st.session_state.batch_mode:
     st.sidebar.info(f"批量模式: {st.session_state.batch_index}/{st.session_state.batch_total}")
     st.subheader("📦 批量检测模式")
 
+    # 显示当前使用的参数，并提供修改按钮
+    col_params, col_edit = st.columns([3, 1])
+    with col_params:
+        st.info(f"当前检测参数：线缆类型 **{st.session_state.batch_cable}**，长度 **{st.session_state.batch_length}** 米")
+    with col_edit:
+        if st.button("✏️ 修改参数", key="edit_params_btn"):
+            st.session_state.show_param_edit = True  # 触发表单显示
+
+    # 如果用户点击修改，显示一个表单
+    if st.session_state.get("show_param_edit", False):
+        with st.form(key="param_edit_form"):
+            new_cable = st.selectbox("新线缆类型", cable_options,
+                                     index=cable_options.index(st.session_state.batch_cable))
+            new_length = st.number_input("新长度 (m)", min_value=0.1, max_value=100.0,
+                                         value=st.session_state.batch_length, step=0.1)
+            col_sub, col_cancel = st.columns(2)
+            with col_sub:
+                submitted = st.form_submit_button("确认修改")
+            with col_cancel:
+                canceled = st.form_submit_button("取消")
+            if submitted:
+                # 更新批量参数，但已测数据保持不变（只影响后续测量）
+                st.session_state.batch_cable = new_cable
+                st.session_state.batch_length = new_length
+                st.session_state.show_param_edit = False
+                st.rerun()
+            if canceled:
+                st.session_state.show_param_edit = False
+                st.rerun()
     if st.session_state.batch_index < st.session_state.batch_total:
         st.info(f"请连接第 {st.session_state.batch_index + 1} 根线缆，然后点击下方按钮开始测量")
         col_b1, col_b2 = st.columns(2)
@@ -206,7 +418,9 @@ if st.session_state.batch_mode:
                     try:
                         resp = requests.post(
                             API_URL,
-                            json={"cable_type": selected_cable, "length": cable_length},
+                            json={"cable_type": st.session_state.batch_cable,
+                                  "length": st.session_state.batch_length
+                                  },
                             timeout=30
                         )
                         resp.raise_for_status()
@@ -311,6 +525,9 @@ if st.sidebar.button("开始批量测量", key="start_batch"):
     st.session_state.batch_results = []
     st.session_state.batch_total = batch_count
     st.session_state.selected_batch_idx = None  # 添加重置
+    # 保存当前参数
+    st.session_state.batch_cable = selected_cable
+    st.session_state.batch_length = cable_length
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -367,6 +584,36 @@ if st.session_state.detection_result:
     else:
         st.error(f"线缆不合格：{result['message']}")
 
+    # ---------- PDF 报告生成按钮 ----------
+    col_pdf1, col_pdf2, col_pdf3 = st.columns([1, 2, 2])   # 改为三列，容纳两个按钮
+    with col_pdf1:
+        if st.button("📄 生成 PDF 报告", key="pdf_btn"):
+            with st.spinner("正在生成报告，请稍候..."):
+                pdf_bytes = generate_pdf_report(
+                    result, cable_length, selected_cable, s11_th, s21_th
+                )
+                st.download_button(
+                    label="⬇️ 下载报告",
+                    data=pdf_bytes,
+                    file_name=f"cable_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    key="pdf_download"
+                )
+
+    # ========== 新增：e‑label 生成按钮 ==========
+    with col_pdf3:   # 放在第三列
+        if st.button("🏷️ 生成 e‑label", key="elabel_btn"):
+            with st.spinner("正在生成 e‑label..."):
+                elabel_bytes = generate_elabel(result, cable_length, selected_cable)
+                st.download_button(
+                    label="⬇️ 下载 e‑label 图片",
+                    data=elabel_bytes,
+                    file_name=f"elabel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                    mime="image/png",
+                    key="elabel_download"
+                )
+    # ========== 新增结束 ==========
+
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**S11 参数**")
@@ -416,7 +663,7 @@ if st.session_state.detection_result:
             }
             for rec in history
         ])
-        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        st.dataframe(history_df, width='stretch', hide_index=True)
         options = {f'#{rec["record_id"]} | {rec["time"]} | {rec["cable_type"]}':
                    rec["record_id"] for rec in history}
         selected_label = st.selectbox(
