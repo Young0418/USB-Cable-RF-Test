@@ -470,7 +470,7 @@ if st.session_state.detection_result:
 
 尽量给出一个易懂的分析或结论，语气专业但道理易懂，可以为普通用户讲解，总字数控制在500字内。
                 """
-                initial_analysis = call_deepseek(init_prompt，system_prompt="你是射频测试专家，熟悉S参数和线缆阈值标准。")
+                initial_analysis = call_deepseek(init_prompt,system_prompt="你是射频测试专家，熟悉S参数和线缆阈值标准。")
                 st.session_state.conversation.append({"role": "assistant", "content": initial_analysis})
                 st.session_state.remaining_questions = 3
                 st.session_state.ai_analysis_triggered = True
