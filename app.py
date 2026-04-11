@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import openai
 import os
+import numpy as np
 from streamlit.errors import StreamlitSecretNotFoundError
 from cable_thresholds import FREQ_THRESHOLDS, MEAN_THRESHOLDS, SUPPORTED_LENGTHS,DEFAULT_FREQ_THRESHOLD
 from copy import deepcopy
@@ -48,6 +49,7 @@ cable_length = st.sidebar.number_input(
     help="输入被测线缆的实际长度，用于S21阈值计算（损耗与长度成正比）"
 )
 
+
 # 自动匹配最接近的长度
 use_len = get_closest_length(cable_length, SUPPORTED_LENGTHS)
 if selected_cable in FREQ_THRESHOLDS and use_len in FREQ_THRESHOLDS[selected_cable]:
@@ -86,6 +88,7 @@ if "batch_results" not in st.session_state:
 if "batch_total" not in st.session_state:
     st.session_state.batch_total = 0
 
+# token限制（目前2400，可长对话）
 def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专家，回复简洁易懂。") -> str:
     """调用 DeepSeek API 生成回答"""
     try:
@@ -96,11 +99,98 @@ def call_deepseek(prompt: str, system_prompt: str = "你是一位线缆检测专
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=200
+            max_tokens=2400
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"AI 分析暂时不可用：{str(e)}"
+
+def call_deepseek_with_history(messages: list, system_prompt: str = "你是射频测试专家。") -> str:
+    """
+    messages: 对话历史，格式为 [{"role": "user/assistant", "content": "..."}, ...]
+    system_prompt: 系统提示（可包含阈值标准）
+    """
+    full_messages = [{"role": "system", "content": system_prompt}] + messages
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=full_messages,
+            temperature=0.7,
+            max_tokens=2400   # 已放开
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"AI 分析暂时不可用：{str(e)}"
+
+def get_threshold_comparison(cable_type, length, result):
+    """生成当前线缆的阈值标准与实际测量值的对比文本"""
+    # 获取频率点阈值（若没有精确匹配长度，使用最接近长度的阈值）
+    supported_lengths = SUPPORTED_LENGTHS
+    if supported_lengths:
+        closest_len = min(supported_lengths, key=lambda L: abs(L - length))
+    else:
+        closest_len = None
+    
+    if cable_type in FREQ_THRESHOLDS and closest_len in FREQ_THRESHOLDS[cable_type]:
+        ft = FREQ_THRESHOLDS[cable_type][closest_len]
+        freq_th = ft["freqs"]
+        s11_th_table = ft["S11"]
+        s21_th_table = ft["S21"]
+    else:
+        ft = DEFAULT_FREQ_THRESHOLD
+        freq_th = ft["freqs"]
+        s11_th_table = ft["S11"]
+        s21_th_table = ft["S21"]
+    
+    # 获取均值阈值
+    mean_th = MEAN_THRESHOLDS.get(cable_type, DEFAULT_MEAN)
+    s11_mean_good = mean_th["s11_mean_good"]
+    s21_mean_good = mean_th["s21_mean_good"]
+    
+    # 提取实际测量数据
+    freq_meas, s11_meas = result['s11_data']
+    _, s21_meas = result['s21_data']
+    
+    # 构建逐点对比字符串（限制展示前10个点避免过长）
+    s11_points = []
+    s21_points = []
+    for i, f in enumerate(freq_meas):
+        # 找到对应的阈值（插值）
+        s11_th = np.interp(f, freq_th, s11_th_table)
+        s21_th = np.interp(f, freq_th, s21_th_table)
+        s11_ok = s11_meas[i] < s11_th
+        s21_ok = s21_meas[i] > s21_th
+        s11_points.append(f"频率 {f/1e9:.1f}GHz: 实测 {s11_meas[i]:.1f}dB, 阈值 {s11_th:.1f}dB, {'合格' if s11_ok else '不合格'}")
+        s21_points.append(f"频率 {f/1e9:.1f}GHz: 实测 {s21_meas[i]:.1f}dB, 阈值 {s21_th:.1f}dB, {'合格' if s21_ok else '不合格'}")
+    
+    # 只展示前5个点和后5个点（如果点很多）
+    if len(s11_points) > 10:
+        s11_display = s11_points[:5] + ["..."] + s11_points[-5:]
+        s21_display = s21_points[:5] + ["..."] + s21_points[-5:]
+    else:
+        s11_display = s11_points
+        s21_display = s21_points
+    
+    comparison_text = f"""
+### 阈值标准（线缆类型：{cable_type}，长度：{length}m，实际使用阈值长度：{closest_len}m）
+
+**S11 反射损耗阈值（越低越好）**：频率点 {freq_th[0]/1e9:.1f}GHz~{freq_th[-1]/1e9:.1f}GHz 范围内，阈值从 {s11_th_table[0]}dB 到 {s11_th_table[-1]}dB 线性变化。
+**S21 插入损耗阈值（越高越好）**：频率点 {freq_th[0]/1e9:.1f}GHz~{freq_th[-1]/1e9:.1f}GHz 范围内，阈值从 {s21_th_table[0]}dB 到 {s21_th_table[-1]}dB 线性变化。
+**均值良好标准**：S11 均值 < {s11_mean_good}dB 且 S21 均值 > {s21_mean_good}dB 时，判定为“性能良好”；否则仅算“合格”。
+
+### 实际测量与阈值逐点对比
+
+**S11 对比：**
+{chr(10).join(s11_display)}
+
+**S21 对比：**
+{chr(10).join(s21_display)}
+
+**整体结果**：S11 整体{'合格' if result['s11_qualified'] else '不合格'}，S21 整体{'合格' if result['s21_qualified'] else '不合格'}。
+**测量均值**：S11 均值 {result['analysis_detail']['s11_mean']}dB，S21 均值 {result['analysis_detail']['s21_mean']}dB。
+    """
+    return comparison_text
+
 
 #批量检测界面
 if st.session_state.batch_mode:
@@ -357,8 +447,17 @@ if st.session_state.detection_result:
     if not st.session_state.ai_analysis_triggered:
         if st.button("进行AI分析"):
             with st.spinner("AI 正在思考中..."):
+                # 生成阈值对比文本
+                comparison = get_threshold_comparison(selected_cable, cable_length, result)
                 init_prompt = f"""
-你是一个射频线缆检测专家。以下是某次 USB 线缆 S 参数检测的结果：
+你是一位资深的射频线缆检测专家。请根据以下线缆检测结果和阈值标准，给出专业的分析。
+{comparison}
+
+输出内容大致为：
+1. 分析结论：线缆是否合格？如果合格，是否达到“性能良好”级别？
+2. 问题定位：如果不合格，具体是哪个参数（S11或S21）在哪个频率点超出阈值？超出多少？
+3. 原因推测：可能的物理原因（例如接触不良、介质损耗过大、阻抗不匹配等）。
+4. 建议：针对当前情况给出可操作的建议（如更换线缆、检查连接器、缩短长度等）。
 
 - 线缆类型：{result.get('cable_type')}
 - 整体合格：{'是' if result.get('qualified') else '否'}
@@ -369,9 +468,9 @@ if st.session_state.detection_result:
 - 线缆长度：{cable_length} 米
 - 系统消息：{result.get('message')}
 
-请用 50 字以内给出一个简短、易懂的结论，并可以提一句建议（比如是否需要更换线缆、调整测试环境等）。语气要友好，适合展示给普通用户。
+尽量给出一个易懂的分析或结论，语气专业但道理易懂，可以为普通用户讲解，总字数控制在500字内。
                 """
-                initial_analysis = call_deepseek(init_prompt)
+                initial_analysis = call_deepseek(init_prompt，system_prompt="你是射频测试专家，熟悉S参数和线缆阈值标准。")
                 st.session_state.conversation.append({"role": "assistant", "content": initial_analysis})
                 st.session_state.remaining_questions = 3
                 st.session_state.ai_analysis_triggered = True
@@ -389,10 +488,13 @@ if st.session_state.detection_result:
                 submitted = st.form_submit_button("发送")
                 if submitted and user_question.strip():
                     st.session_state.conversation.append({"role": "user", "content": user_question})
-                    st.session_state.remaining_questions -= 1
                     with st.spinner("AI 正在回答..."):
-                        answer = call_deepseek(user_question)
+                        answer = call_deepseek_with_history(
+                            messages=st.session_state.conversation,   # 包含历史对话
+                            system_prompt="你是射频测试专家，请基于之前的检测数据和对话回答。"
+                        )
                         st.session_state.conversation.append({"role": "assistant", "content": answer})
+                    st.session_state.remaining_questions -= 1
                     st.rerun()
         else:
             st.info("你已用完 3 次提问机会。如需继续咨询，请重新开始检测。")
