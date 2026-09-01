@@ -35,6 +35,7 @@ class Settings:
     # ---- Agent ----
     AGENT_MAX_STEPS: int = int(os.getenv("AGENT_MAX_STEPS", "6"))
     AGENT_SESSION_CAP: int = int(os.getenv("AGENT_SESSION_CAP", "40"))
+    AGENT_TOKEN_BUDGET: int = int(os.getenv("AGENT_TOKEN_BUDGET", "50000"))
 
 
 settings = Settings()

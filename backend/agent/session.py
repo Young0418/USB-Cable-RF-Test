@@ -33,14 +33,61 @@ class AgentSession:
             {"role": "tool", "tool_call_id": tool_call_id, "content": content}
         )
 
+    @staticmethod
+    def _summary_marker() -> str:
+        return "【此前对话摘要】"
+
+    @staticmethod
+    def _is_summary(msg: dict) -> bool:
+        return (
+            msg.get("role") == "system"
+            and str(msg.get("content", "")).startswith("【此前对话摘要】")
+        )
+
+    def _leading_system_end(self) -> int:
+        """返回连续 system 头（提示词 + 可能存在的旧摘要）之后的索引。"""
+        i = 0
+        while i < len(self.messages) and self.messages[i].get("role") == "system":
+            i += 1
+        return i
+
     def trim(self, cap: int) -> None:
-        """超出上限时裁掉最旧的非 system 消息。"""
-        cap = max(4, cap)  # 至少要给模型留点对话空间
-        if len(self.messages) <= cap:
+        """超出上限时裁掉最旧的非 system 消息（硬裁剪，摘要压缩的兜底）。
+
+        保留全部 system 头（含旧摘要），只裁对话消息。
+        """
+        cap = max(4, cap)
+        start = self._leading_system_end()
+        tail = self.messages[start:]
+        if len(tail) <= cap:
             return
-        overflow = len(self.messages) - cap
-        # 保留 system 与最后 cap-1 条
-        self.messages = [self.messages[0]] + self.messages[1 + overflow:]
+        self.messages = self.messages[:start] + tail[-cap:]
+
+    def overflow_messages(self, cap: int, min_compress: int = 4) -> list | None:
+        """返回需要交给模型压缩的最旧对话消息；无需压缩时返回 None。
+
+        min_compress：压缩至少要有这么多条旧消息才值得一次模型调用，
+        否则直接走 trim() 硬裁剪。
+        """
+        cap = max(4, cap)
+        start = self._leading_system_end()
+        tail = self.messages[start:]
+        if len(tail) <= cap + min_compress:
+            return None
+        overflow = len(tail) - cap
+        return list(tail[:overflow])
+
+    def compress(self, cap: int, summary: str) -> None:
+        """用模型生成的摘要替换最旧对话，保留 system 头 + 一条摘要 + 最近 cap-1 条。"""
+        cap = max(4, cap)
+        head = [m for m in self.messages[: self._leading_system_end()] if not self._is_summary(m)]
+        start = self._leading_system_end()
+        recent = list(self.messages[start:][-(cap - 1) :])
+        self.messages = [
+            *head,
+            {"role": "system", "content": f"{self._summary_marker()}\n{summary}"},
+            *recent,
+        ]
 
     def to_dict(self) -> dict:
         return {

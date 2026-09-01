@@ -49,12 +49,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "get_thresholds",
-            "description": "获取指定线缆类型和长度的合格阈值（频率点、S11阈值、S21阈值、均值标准）。",
+            "description": "获取指定线缆类型和长度的合格阈值标准。默认只返回摘要（均值标准 + 频率阈值范围），够回答'多少算合格'；只有需要逐频率完整曲线时才设 include_full=true。",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "cable_type": {"type": "string", "description": "线缆类型，如 RG316"},
                     "length": {"type": "number", "description": "线缆长度（米），如 10"},
+                    "include_full": {"type": "boolean", "description": "是否返回完整逐频率阈值数组，默认 false"},
                 },
                 "required": ["cable_type", "length"],
                 "additionalProperties": False,
@@ -133,16 +134,22 @@ def _get_thresholds(args: dict) -> dict:
         ln = float(args.get("length", 5.0))
         closest = get_closest_length(ln, SUPPORTED_LENGTHS)
         ft = FREQ_THRESHOLDS.get(ct, {}).get(closest, DEFAULT_FREQ_THRESHOLD)
-        return {
+        mean = MEAN_THRESHOLDS.get(ct, DEFAULT_MEAN)
+        result = {
             "ok": True,
             "cable_type": ct,
             "length": ln,
             "closest_length": closest,
-            "freqs": ft["freqs"],
-            "S11": ft["S11"],
-            "S21": ft["S21"],
-            "mean": MEAN_THRESHOLDS.get(ct, DEFAULT_MEAN),
+            # 摘要：只给均值标准 + 频率阈值范围，够回答"多少算合格"
+            "mean": mean,
+            "freq_range_hz": [min(ft["freqs"]), max(ft["freqs"])],
+            "s11_range_db": [min(ft["S11"]), max(ft["S11"])],
+            "s21_range_db": [min(ft["S21"]), max(ft["S21"])],
         }
+        # 仅显式要求时才回传完整逐频率数组，避免撑爆上下文
+        if args.get("include_full"):
+            result.update({"freqs": ft["freqs"], "S11": ft["S11"], "S21": ft["S21"]})
+        return result
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
 

@@ -1,5 +1,20 @@
 # 变更日志
 
+## 2.1.0 — 2026-09-01 智能体上下文工程（P0）
+
+### 新增
+- **会话摘要压缩**：会话消息超上限时，最旧一轮先交给模型压成中文摘要再裁剪，不再直接丢消息（丢失关键信息）
+- **死循环检测**：同一 `(tool, args)` 连续调用 3 次即中断并提示，防止工具无限重试
+- **token 预算**：累计 usage 超 `AGENT_TOKEN_BUDGET` 后优雅停止（新增 `.env` 配置项）
+- `get_thresholds` 工具默认只返回摘要（均值标准 + 阈值范围），完整逐频率数组需 `include_full=true`，减少 token 消耗
+
+### 变更
+- `session.trim()` 重写：始终保留 system 头（含摘要），只裁对话消息
+- 对齐 DeerFlow 的 `tool_output` / `summarization` / `loop_detection` / `token_budget` 设计（见 [ROADMAP.md](ROADMAP.md) P0）
+
+### 修复
+- 结束裁剪（`trim`）不再误删刚生成的会话摘要
+
 ## 2.0.0 — 2026-09-01 项目重构
 
 ### 目录重构
