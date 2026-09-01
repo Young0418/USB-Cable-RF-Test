@@ -2,12 +2,12 @@
   <div class="cable-selector">
     <el-form inline>
       <el-form-item label="线缆类型">
-        <el-select v-model="cableType" placeholder="选择线缆类型" style="width: 180px">
+        <el-select v-model="cableType" placeholder="选择线缆类型" style="width: 240px">
           <el-option v-for="t in cableTypes" :key="t" :label="t" :value="t" />
         </el-select>
       </el-form-item>
       <el-form-item label="长度 (m)">
-        <el-input-number v-model="length" :min="0.5" :max="200" :step="0.5" :precision="1" style="width: 140px" />
+        <el-input-number v-model="length" :min="0.5" :max="200" :step="0.5" :precision="1" style="width: 180px" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" :loading="running" :disabled="!cableType" @click="onRun">

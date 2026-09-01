@@ -25,6 +25,7 @@ const option = computed(() => {
 
   const x = props.freqs.map(ghz)
   return {
+    textStyle: { fontSize: 19 },
     tooltip: { trigger: 'axis' },
     legend: { data: ['S11 实测', 'S21 实测', 'S11 阈值', 'S21 阈值'] },
     grid: { left: 60, right: 20, top: 40, bottom: 45 },

@@ -1,19 +1,16 @@
 <template>
   <el-container class="app-layout">
-    <el-aside width="220px" class="app-aside">
+    <el-aside width="240px" class="app-aside">
       <div class="brand">
-        <span class="brand-logo">📡</span>
-        <div>
-          <div class="brand-title">USB 线缆射频测试</div>
-          <div class="brand-sub">RF Cable Test</div>
-        </div>
+        <div class="brand-title">USB 线缆射频测试</div>
+        <div class="brand-sub">RF Cable Test</div>
       </div>
       <el-menu :default-active="active" router class="app-menu">
-        <el-menu-item index="/detection">🔬 单次检测</el-menu-item>
-        <el-menu-item index="/batch">📋 批量检测</el-menu-item>
-        <el-menu-item index="/agent">🤖 AI 助手</el-menu-item>
-        <el-menu-item index="/history">🗂️ 历史记录</el-menu-item>
-        <el-menu-item index="/thresholds">📏 阈值标准</el-menu-item>
+        <el-menu-item index="/detection">单次检测</el-menu-item>
+        <el-menu-item index="/batch">批量检测</el-menu-item>
+        <el-menu-item index="/agent">AI 助手</el-menu-item>
+        <el-menu-item index="/history">历史记录</el-menu-item>
+        <el-menu-item index="/thresholds">阈值标准</el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -65,24 +62,19 @@ onUnmounted(() => window.clearInterval(timer))
   background: #001529;
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 18px 16px;
   color: #fff;
 }
-.brand-logo {
-  font-size: 26px;
-}
 .brand-title {
-  font-size: 15px;
+  font-size: 24px;
   font-weight: 600;
   white-space: nowrap;
 }
 .brand-sub {
-  font-size: 11px;
+  font-size: 18px;
   opacity: 0.6;
   letter-spacing: 0.5px;
+  margin-top: 2px;
 }
 .app-menu {
   border-right: none;
@@ -101,7 +93,7 @@ onUnmounted(() => window.clearInterval(timer))
   border-bottom: 1px solid #e4e7ed;
 }
 .page-title {
-  font-size: 16px;
+  font-size: 26px;
   font-weight: 600;
 }
 .app-main {

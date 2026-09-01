@@ -121,7 +121,7 @@ function renderMarkdown(text: string): string {
 .agent-chat {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 160px);
 }
 .chat-list {
   flex: 1;
@@ -132,7 +132,7 @@ function renderMarkdown(text: string): string {
 }
 .empty {
   color: #909399;
-  font-size: 14px;
+  font-size: 22px;
   line-height: 1.8;
 }
 .empty ul {
@@ -157,7 +157,7 @@ function renderMarkdown(text: string): string {
   max-width: 78%;
   padding: 10px 14px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 22px;
   line-height: 1.6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -168,10 +168,10 @@ function renderMarkdown(text: string): string {
   background: #f0f2f5;
   padding: 1px 5px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 19px;
 }
 .tool-line {
-  font-size: 12.5px;
+  font-size: 20px;
   color: #8c8c8c;
   background: #fffbe6;
   border: 1px solid #ffe58f;

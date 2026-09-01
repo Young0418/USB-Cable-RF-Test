@@ -4,12 +4,12 @@
       <div class="toolbar">
         <el-form inline>
           <el-form-item label="线缆类型">
-            <el-select v-model="draftType" style="width: 160px">
+            <el-select v-model="draftType" style="width: 220px">
               <el-option v-for="t in cableTypes" :key="t" :label="t" :value="t" />
             </el-select>
           </el-form-item>
           <el-form-item label="长度 (m)">
-            <el-input-number v-model="draftLength" :min="0.5" :max="200" :step="0.5" :precision="1" style="width: 120px" />
+            <el-input-number v-model="draftLength" :min="0.5" :max="200" :step="0.5" :precision="1" style="width: 160px" />
           </el-form-item>
           <el-form-item>
             <el-button @click="addItem">＋ 添加</el-button>

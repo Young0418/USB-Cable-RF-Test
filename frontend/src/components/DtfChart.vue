@@ -17,6 +17,7 @@ const option = computed(() => {
     ? [{ xAxis: props.cableLength, label: { formatter: `线缆端 ${props.cableLength}m`, position: 'insideEndTop' } }]
     : []
   return {
+    textStyle: { fontSize: 19 },
     tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v.toFixed(2)} dB` },
     grid: { left: 60, right: 20, top: 40, bottom: 40 },
     dataZoom: [{ type: 'inside' }],

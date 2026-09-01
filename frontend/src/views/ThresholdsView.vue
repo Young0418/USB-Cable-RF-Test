@@ -3,12 +3,12 @@
     <el-card shadow="never" class="mb">
       <el-form inline>
         <el-form-item label="线缆类型">
-          <el-select v-model="cableType" placeholder="选择线缆类型" style="width: 180px" @change="onSelect">
+          <el-select v-model="cableType" placeholder="选择线缆类型" style="width: 240px" @change="onSelect">
             <el-option v-for="t in store.cableTypes" :key="t" :label="t" :value="t" />
           </el-select>
         </el-form-item>
         <el-form-item label="长度 (m)">
-          <el-select v-model="length" style="width: 120px" @change="onSelect">
+          <el-select v-model="length" style="width: 160px" @change="onSelect">
             <el-option v-for="l in supportedLengths" :key="l" :label="`${l} m`" :value="l" />
           </el-select>
         </el-form-item>

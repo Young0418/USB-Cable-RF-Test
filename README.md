@@ -5,12 +5,12 @@
 
 ## 功能
 
-- 🔬 **单次检测**：S11/S21 曲线 + 阈值虚线 + DTF 故障定位 + 合格判定
-- 📄 **PDF 报告 & e-label 二维码**：一键下载
-- 📋 **批量检测**：逐条执行 + CSV 导出
-- 🤖 **AI 助手**：DeepSeek function calling 工具调用，支持「测一下 RG316 10 米」「上一条检测结果」等自然语言操作，SSE 流式输出
-- 🗂️ **历史记录**：持久化到本地文件
-- 📏 **阈值标准**：6 种线缆 × 3 种长度，长度自动吸附最近档位
+-  **单次检测**：S11/S21 曲线 + 阈值虚线 + DTF 故障定位 + 合格判定
+-  **PDF 报告 & e-label 二维码**：一键下载
+-  **批量检测**：逐条执行 + CSV 导出
+-  **AI 助手**：DeepSeek function calling 工具调用，支持「测一下 RG316 10 米」「上一条检测结果」等自然语言操作，SSE 流式输出
+-  **历史记录**：持久化到本地文件
+-  **阈值标准**：6 种线缆 × 3 种长度，长度自动吸附最近档位
 
 ## 快速开始
 
@@ -41,7 +41,7 @@ python -m uvicorn backend.main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5174
 ```
 
 开发态 vite 会把 `/api` 代理到 `127.0.0.1:8000`，无需处理跨域。
