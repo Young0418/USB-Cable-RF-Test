@@ -7,3 +7,29 @@ __pycache__/
 # PyCharm缓存文件
 .idea/
 *.iml
+
+# ---- 环境变量与密钥（务必不要提交）----
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# 运行时日志
+*.log
+hardware.log
+app.log
+
+# 运行时数据
+data/
+history.json
+
+# 虚拟环境
+.venv/
+venv/
+
+# 前端构建产物（Vue 等）
+node_modules/
+dist/
+
+# 前端 TS 构建缓存
+*.tsbuildinfo

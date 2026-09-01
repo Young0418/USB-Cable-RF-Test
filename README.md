@@ -1,45 +1,88 @@
-# Cable-RF-Test
-线缆性能测试系统
+# USB 线缆射频测试系统
 
-## 1. 项目简介
-本项目用于线缆的射频信号采集、通信控制与数据解析，
-通过 Python 实现硬件通信、数据读取与简单测试逻辑，完成大创项目的硬件通信模块开发。
+大创项目：基于矢量网络分析仪的 USB 线缆射频性能测试系统。
+前后端分离：**FastAPI 后端 + Vue 3 前端 + DeepSeek AI 助手**。
 
-## 2. 团队分工（3人）
-- **杨焕莹**：硬件通信代码开发、Python 串口通信、Git 仓库维护
-- **李璟琳**：数据处理与分析
-- -**郭宇鑫**：测试逻辑与结果整理
+## 功能
 
-## 3. 技术与环境
-- 语言：Python 3.9+
-- 主要库：pyvisa,matplotlib,pandas,streamlit
-- 开发工具：PyCharm
-- 版本管理：GitHub
+- 🔬 **单次检测**：S11/S21 曲线 + 阈值虚线 + DTF 故障定位 + 合格判定
+- 📄 **PDF 报告 & e-label 二维码**：一键下载
+- 📋 **批量检测**：逐条执行 + CSV 导出
+- 🤖 **AI 助手**：DeepSeek function calling 工具调用，支持「测一下 RG316 10 米」「上一条检测结果」等自然语言操作，SSE 流式输出
+- 🗂️ **历史记录**：持久化到本地文件
+- 📏 **阈值标准**：6 种线缆 × 3 种长度，长度自动吸附最近档位
 
-## 4. 主要文件说明
-.
-├── hardware/ # 硬件通信模块
-│ ├── virtual_visa.py # 虚拟仪器（无硬件时模拟）
-│ └── hardware_comm.py # 真实仪器通信
-├── analysis/ # 数据分析模块
-│ ├── cable_thresholds.py # 线缆阈值配置
-│ └── data_analysis_amended.py # 核心分析函数
-├── gui/ # 前端界面
-│ └── app.py # Streamlit应用
-├── api.py/ # API服务（FastAPI）
-├── docs/ # 文档
-├── CHANGELOG.md # 更新日志
-└── README.md
+## 快速开始
 
-## 5. 功能特点
-- 支持多种线缆类型（RG316、RG58、半刚电缆等），阈值可配置。
-- 硬件控制：通过SCPI指令与思仪3674通信，获取复数S参数并转换为dB。
-- 智能分析：根据线缆类型动态阈值，判断合格/不合格，计算统计量。
-- AI增强：调用DeepSeek API生成自然语言分析建议。
-- 可视化界面：基于Streamlit，实时显示曲线、结果和AI报告。
-## 6.使用说明
-1. 配置线缆阈值：编辑 `cable_thresholds.py` 添加或修改线缆参数。
-2. 启动虚拟仪器（无真实仪器时）：`python hardware/virtual_visa.py`
-3. 启动API服务：`python api.py`
-4. 启动前端：`streamlit run app.py`
-5. 在浏览器中打开 `http://localhost:8501`，选择线缆类型并开始检测。
+### 环境要求
+- Python 3.10+，Node.js 18+
+- 无真实仪器时用内置虚拟矢网（默认开启）
+
+### 1. 后端
+
+```bash
+# 安装依赖
+python -m pip install -r requirements.txt
+
+# 配置环境变量（首次必做）
+copy .env.example .env        # Windows
+cp .env.example .env          # Linux/macOS
+# 编辑 .env，填入 DEEPSEEK_API_KEY
+
+# 启动虚拟矢网（无真实仪器时；真实仪器则设 USE_VIRTUAL_VISA=0）
+python scripts/virtual_visa_server.py
+
+# 启动后端（:8000）
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+### 2. 前端
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+开发态 vite 会把 `/api` 代理到 `127.0.0.1:8000`，无需处理跨域。
+
+## 目录结构
+
+```
+├── backend/            # FastAPI 后端
+│   ├── main.py         # 应用入口
+│   ├── config.py       # 环境变量配置
+│   ├── core/           # 阈值 / 分析 / 硬件 / 编排（纯领域）
+│   ├── schemas/        # Pydantic 模型
+│   ├── services/       # 历史 / 缓存 / PDF / e-label
+│   ├── agent/          # AI 助手（工具调用 + SSE）
+│   └── routers/        # health / detection / history / thresholds / agent
+├── scripts/            # 虚拟矢网、开发启动
+├── frontend/           # Vue 3 + Vite + TS
+├── docs/               # ARCHITECTURE / API / CHANGELOG
+└── data/               # 运行时数据（gitignored）
+```
+
+详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、[docs/API.md](docs/API.md)。
+
+## 配置说明（.env）
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | 空 | DeepSeek API Key，AI 助手必需 |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI 兼容端点 |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名 |
+| `USE_VIRTUAL_VISA` | `1` | `1` 连虚拟矢网，`0` 连真实仪器 |
+| `VISA_ADDRESS` | `TCPIP0::127.0.0.1::5025::SOCKET` | 仪器地址 |
+| `AGENT_MAX_STEPS` | `6` | Agent 单轮最大工具调用步数 |
+| `AGENT_SESSION_CAP` | `40` | 会话消息数上限 |
+| `HISTORY_LIMIT` | `100` | 历史记录上限 |
+
+## 支持线缆与长度档位
+
+`RG316` `RG58` `半刚电缆` `RG174` `LMR-200` `RG6`，长度档位 `5 / 10 / 20 m`。
+输入任意长度会吸附到最近档位判定。
+
+## 团队
+
+杨焕莹 / 李璟琳 / 郭宇鑫
