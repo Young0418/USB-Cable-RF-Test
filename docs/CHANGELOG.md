@@ -21,8 +21,9 @@
 
 ### 环境与安全
 - 新增 `.env` / `.env.example`，密钥（DeepSeek API Key）从源码移入环境变量
-- `.gitignore` 排除 `.env`、`data/`、`*.log`、`node_modules/`、`dist/`
-- `git rm --cached` 移除已提交的含密钥文件，建议轮换已泄露的 Key
+- `.gitignore` 排除 `.env`、`data/`、`*.log`、`node_modules/`、`dist/`、`*.tsbuildinfo`
+- 使用 `git filter-repo` 重写全部 91 个提交：从历史中彻底删除含密钥文件（`.streamlit/`、`newweb_api/`、`VueWithChange.zip`），并全局替换密钥字符串，已强制推送
+- ⚠️ 该 Key 曾长期暴露于公开历史，**无论历史是否已清除都必须立即在 DeepSeek 控制台轮换**，新 Key 写入本地 `.env`（gitignored）
 
 ### 保留功能（迁移）
 - 单次检测：S11/S21/DTF 曲线 + 合格判定 + 阈值虚线
